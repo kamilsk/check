@@ -1,17 +1,48 @@
 > # check
->
+> [![Analytics](https://ga-beacon.appspot.com/UA-109817251-19/check/readme?pixel)](https://github.com/kamilsk/check)
 > > Check Something as a Service.
 
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/octolab)
-[![License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Feedback
+## Usage
+
+### Quick start
+
+```bash
+$ check urls https://kamil.samigullin.info/
+# /
+# ├─── 200 https://howilive.ru/en/
+# │
+# └─── 200 https://github.com/kamilsk
+#
+# /ru/
+# ├─── 200 https://howilive.ru/
+# │
+# └─── 200 https://github.com/kamilsk
+```
+
+## Installation
+
+```bash
+$ egg github.com/kamilsk/check@^1.0.0 -- make test install
+```
+
+### Mirror
+
+```bash
+$ egg bitbucket.org/kamilsk/check@^1.0.0 -- make test install
+```
+
+> [egg](https://github.com/kamilsk/egg) is an `extended go get`.
+
+## Notes
+
+- tested on Go 1.5, 1.6, 1.7, 1.8, 1.9 and 1.10
+
+---
 
 [![@kamilsk](https://img.shields.io/badge/author-%40kamilsk-blue.svg)](https://twitter.com/ikamilsk)
 [![@octolab](https://img.shields.io/badge/sponsor-%40octolab-blue.svg)](https://twitter.com/octolab_inc)
 
-## Notes
-
-- made with ❤️ by [OctoLab](https://www.octolab.org/)
-
-[![Analytics](https://ga-beacon.appspot.com/UA-109817251-19/check/readme)](https://github.com/igrigorik/ga-beacon)
+made with ❤️ by [OctoLab](https://www.octolab.org/)
