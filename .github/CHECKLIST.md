@@ -1,0 +1,39 @@
+# Repository checklist
+
+- github
+  - [ ] labels
+    - `#5319e7`, `help wanted`
+    - `#b60205`, `status:blocked`
+    - `#b60205`, `status:declined`
+    - `#1d76db`, `status:research`
+    - `#f7c6c7`, `type:bug`
+    - `#e11d21`, `type:critical`
+    - `#bfdadc`, `type:docs`
+    - `#006b75`, `type:feature`
+    - `#bfe5bf`, `type:refactoring`
+    - `#009800`, `type:task`
+  - [ ] milestones
+  - [ ] projects
+  - [ ] disable wiki
+  - [ ] short description with emoji
+  - [ ] topics
+- [ ] license
+  - **MIT**
+- readme
+  - [ ] header with google analytics and short description
+  - [ ] patreon badge
+  - [ ] travis badge
+  - [ ] scrutinizer badge
+  - [ ] coveralls badge
+  - [ ] godoc badge
+  - [ ] license badge
+  - [ ] footer with feedback
+  - sections
+    - [ ] quick start
+    - [ ] installation
+    - [ ] notes
+- integrations
+  - [ ] slack
+  - [ ] travis
+  - [ ] scrutinizer
+  - [ ] gitter
