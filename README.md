@@ -24,8 +24,7 @@ $ check urls https://kamil.samigullin.info/
 #     ├─── [200] https://kamil.samigullin.info/
 #     └─── [999] https://www.linkedin.com/in/kamilsk
 $ check urls https://www.octolab.org/ | grep '\[3[0-9][0-9]\]'
-#     ├─── [301] https://m.do.co/c/b2a387de5da4
-#     └─── [302] https://vk.com/octolab
+#     ├─── [301] https://m.do.co/c/b2a387de5da4 -> https://www.digitalocean.com...
 ```
 
 ## Installation

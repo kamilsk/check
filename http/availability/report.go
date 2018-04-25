@@ -1,12 +1,24 @@
 package availability
 
 import (
+	"net/http"
 	"net/url"
 	"sync"
 
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 )
+
+const (
+	location = "Location"
+)
+
+var redirects = map[int]struct{}{
+	http.StatusMovedPermanently:  {},
+	http.StatusFound:             {},
+	http.StatusTemporaryRedirect: {},
+	http.StatusPermanentRedirect: {},
+}
 
 func CreateReport(rawURL string) *Report {
 	report := NewReport(rawURL)
@@ -59,19 +71,20 @@ func (r *Report) Get() error {
 	if r.error != nil {
 		return r.error
 	}
-	c := colly.NewCollector(UserAgent(), IgnoreRedirect())
+	c := colly.NewCollector(
+		UserAgent(), NoRedirect(), colly.IgnoreRobotsTxt(),
+	)
+
 	c.OnRequest(func(req *colly.Request) {
 		link := r.createLink(req.URL)
 		if link.IsPage {
 			r.createPage(link)
 		}
 	})
-	c.OnError(func(resp *colly.Response, err error) {
-		r.setStatus(resp.Request.URL, resp.StatusCode)
-	})
-	c.OnResponse(func(resp *colly.Response) {
-		r.setStatus(resp.Request.URL, resp.StatusCode)
-	})
+
+	c.OnError(func(resp *colly.Response, err error) { r.setStatus(resp) })
+	c.OnResponse(func(resp *colly.Response) { r.setStatus(resp) })
+
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		if r.isPage(e.Request.URL) {
 			attr := e.Attr("href")
@@ -93,6 +106,7 @@ func (r *Report) Get() error {
 			e.Request.Visit(href)
 		}
 	})
+
 	return c.Visit(r.location.String())
 }
 
@@ -175,17 +189,20 @@ func (r *Report) isPage(location *url.URL) bool {
 	return location.Hostname() == r.location.Hostname()
 }
 
-func (r *Report) setStatus(location *url.URL, statusCode int) {
+func (r *Report) setStatus(resp *colly.Response) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	href := location.String()
+	href := resp.Request.URL.String()
 	link, ok := r.journal[href]
 	if !ok {
 
 		panic("unexpected URL " + href) // TODO set error instead of panic
 
 	}
-	link.StatusCode = statusCode
+	link.StatusCode = resp.StatusCode
+	if _, is := redirects[link.StatusCode]; is {
+		link.Redirect = resp.Headers.Get(location)
+	}
 }
 
 type Page struct {
@@ -194,7 +211,8 @@ type Page struct {
 }
 
 type Link struct {
-	StatusCode int
 	IsPage     bool
+	StatusCode int
 	Location   string
+	Redirect   string
 }
