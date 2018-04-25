@@ -1,5 +1,6 @@
 > # check
-> > Check Something as a Service.
+> [![Analytics](https://ga-beacon.appspot.com/UA-109817251-19/check/readme?pixel)](https://github.com/kamilsk/check)
+> Check Something as a Service.
 
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/octolab)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
