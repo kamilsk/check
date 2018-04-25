@@ -53,7 +53,7 @@ func (r *Report) Get() error {
 	if r.error != nil {
 		return r.error
 	}
-	c := colly.NewCollector(colly.UserAgent("check"), colly.IgnoreRobotsTxt())
+	c := colly.NewCollector(UserAgent(), IgnoreRedirect())
 	c.OnRequest(func(req *colly.Request) {
 		link := r.createLink(req.URL)
 		if link.IsPage {
