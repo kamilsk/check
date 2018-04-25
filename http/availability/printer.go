@@ -40,10 +40,10 @@ func (p *Printer) Print(w io.Writer) {
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				if i == last {
-					p.colorize(link.StatusCode).Fprintf(w, "└─── [%d] %s\n", link.StatusCode, link.Location)
+					p.colorize(link.StatusCode).Fprintf(w, "    └─── [%d] %s\n", link.StatusCode, link.Location)
 					continue
 				}
-				p.colorize(link.StatusCode).Fprintf(w, "├─── [%d] %s\n", link.StatusCode, link.Location)
+				p.colorize(link.StatusCode).Fprintf(w, "    ├─── [%d] %s\n", link.StatusCode, link.Location)
 			}
 		}
 	}

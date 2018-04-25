@@ -36,8 +36,11 @@ func (app application) Run() {
 				version, commit, date, runtime.Version(), runtime.Compiler, runtime.GOOS+"/"+runtime.GOARCH)
 		},
 	})
-	cmd.RootCmd.SetOutput(app.Stderr)
-	if err := cmd.RootCmd.Execute(); err != nil {
+	if err := func() (err error) {
+		// prepare to handle panics
+		err = cmd.RootCmd.Execute()
+		return
+	}(); err != nil {
 		fmt.Fprintln(app.Stderr, err)
 		app.Shutdown(failed)
 	}
