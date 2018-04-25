@@ -134,6 +134,12 @@
   revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
 
 [[projects]]
+  name = "github.com/oxequa/grace"
+  packages = ["."]
+  revision = "5b9df9ab2a25c9493fd3daa999d67f766c8f4d89"
+  version = "1.0"
+
+[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
@@ -289,6 +295,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fd765221cb0382b218ac61a6d18b9e3a9b596c6278cee73e641fbfa34a3dc73c"
+  inputs-digest = "6bd2f53653a11a1660a36ba70710fa4ddca41e5edfc3c82fe8f4ef681649211a"
   solver-name = "gps-cdcl"
   solver-version = 1

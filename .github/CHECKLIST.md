@@ -29,11 +29,12 @@
   - [x] license badge
   - [x] footer with feedback
   - sections
-    - [ ] quick start
-    - [ ] installation
-    - [ ] notes
+    - [x] quick start
+    - [x] installation
+    - [x] notes
 - integrations
   - [ ] slack
   - [ ] travis
   - [ ] scrutinizer
   - [ ] gitter
+  - [ ] goreleaser

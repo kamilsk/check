@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/kamilsk/check/cmd"
+	"github.com/oxequa/grace"
 	"github.com/spf13/cobra"
 
 	_ "github.com/spf13/viper"
@@ -37,10 +38,13 @@ func (app application) Run() {
 		},
 	})
 	if err := func() (err error) {
-		// prepare to handle panics
+		defer grace.Recover(&err)
 		err = cmd.RootCmd.Execute()
 		return
 	}(); err != nil {
+		// so, when `issue` project will be ready
+		// I have to integrate it to open GitHub issues
+		// with stack trace from terminal
 		fmt.Fprintln(app.Stderr, err)
 		app.Shutdown(failed)
 	}

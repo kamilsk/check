@@ -7,6 +7,10 @@
   branch = "master"
 
 [[constraint]]
+  name = "github.com/oxequa/grace"
+  version = "^1.0.0"
+
+[[constraint]]
   name = "github.com/pkg/errors"
   version = "*"
 
