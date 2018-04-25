@@ -16,13 +16,14 @@ type Printer struct {
 
 func (p *Printer) Print(w io.Writer) {
 	for _, report := range p.reports {
-		pages := byLocation(report.Pages())
+		pages := pagesByLocation(report.Pages())
 		sort.Sort(pages)
 		for _, page := range pages {
 			fmt.Fprintf(w, "[%d] %s \n", page.StatusCode, page.Location)
-			max := len(page.Links)
+			last := len(page.Links) - 1
+			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
-				if max == i+1 {
+				if i == last {
 					fmt.Fprintf(w, "└─── [%d] %s \n", link.StatusCode, link.Location)
 					continue
 				}
@@ -32,16 +33,18 @@ func (p *Printer) Print(w io.Writer) {
 	}
 }
 
-type byLocation []*Page
+type pagesByLocation []*Page
 
-func (l byLocation) Len() int {
-	return len(l)
-}
+func (l pagesByLocation) Len() int { return len(l) }
 
-func (l byLocation) Less(i, j int) bool {
-	return l[i].Link.Location < l[j].Link.Location
-}
+func (l pagesByLocation) Less(i, j int) bool { return l[i].Link.Location < l[j].Link.Location }
 
-func (l byLocation) Swap(i, j int) {
-	l[i], l[j] = l[j], l[i]
-}
+func (l pagesByLocation) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+
+type linksByStatusCode []*Link
+
+func (l linksByStatusCode) Len() int { return len(l) }
+
+func (l linksByStatusCode) Less(i, j int) bool { return l[i].StatusCode < l[j].StatusCode }
+
+func (l linksByStatusCode) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
