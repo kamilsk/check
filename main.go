@@ -8,6 +8,10 @@ import (
 
 	"github.com/kamilsk/check/cmd"
 	"github.com/spf13/cobra"
+
+	_ "github.com/fatih/color"
+	_ "github.com/spf13/viper"
+	_ "github.com/stretchr/testify"
 )
 
 const (

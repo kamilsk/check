@@ -1,5 +1,4 @@
 > # check
-> [![Analytics](https://ga-beacon.appspot.com/UA-109817251-19/check/readme?pixel)](https://github.com/kamilsk/check)
 > > Check Something as a Service.
 
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/octolab)
@@ -11,15 +10,18 @@
 
 ```bash
 $ check urls https://kamil.samigullin.info/
-# /
-# ├─── 200 https://howilive.ru/en/
-# │
-# └─── 200 https://github.com/kamilsk
-#
-# /ru/
-# ├─── 200 https://howilive.ru/
-# │
-# └─── 200 https://github.com/kamilsk
+# [200] https://kamil.samigullin.info/
+# ├─── [200] https://howilive.ru/en/
+# ├─── [200] https://github.com/kamilsk
+# ├─── [200] https://twitter.com/ikamilsk
+# ├─── [999] https://www.linkedin.com/in/kamilsk/en
+# └─── [200] https://kamil.samigullin.info/ru/
+# [200] https://kamil.samigullin.info/ru/
+# ├─── [200] https://howilive.ru/
+# ├─── [200] https://github.com/kamilsk
+# ├─── [200] https://twitter.com/ikamilsk
+# ├─── [999] https://www.linkedin.com/in/kamilsk
+# └─── [200] https://kamil.samigullin.info/
 ```
 
 ## Installation
