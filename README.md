@@ -15,14 +15,14 @@ $ check urls https://kamil.samigullin.info/
 # ├─── [200] https://howilive.ru/en/
 # ├─── [200] https://github.com/kamilsk
 # ├─── [200] https://twitter.com/ikamilsk
-# ├─── [999] https://www.linkedin.com/in/kamilsk/en
-# └─── [200] https://kamil.samigullin.info/ru/
+# ├─── [200] https://kamil.samigullin.info/ru/
+# └─── [999] https://www.linkedin.com/in/kamilsk
 # [200] https://kamil.samigullin.info/ru/
 # ├─── [200] https://howilive.ru/
 # ├─── [200] https://github.com/kamilsk
 # ├─── [200] https://twitter.com/ikamilsk
-# ├─── [999] https://www.linkedin.com/in/kamilsk
-# └─── [200] https://kamil.samigullin.info/
+# ├─── [200] https://kamil.samigullin.info/
+# └─── [999] https://www.linkedin.com/in/kamilsk
 ```
 
 ## Installation

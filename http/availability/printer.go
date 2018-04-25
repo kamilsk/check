@@ -35,15 +35,15 @@ func (p *Printer) Print(w io.Writer) {
 		pages := pagesByLocation(report.Pages())
 		sort.Sort(pages)
 		for _, page := range pages {
-			p.colorize(page.StatusCode).Fprintf(w, "[%d] %s \n", page.StatusCode, page.Location)
+			p.colorize(page.StatusCode).Fprintf(w, "[%d] %s\n", page.StatusCode, page.Location)
 			last := len(page.Links) - 1
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				if i == last {
-					p.colorize(link.StatusCode).Fprintf(w, "└─── [%d] %s \n", link.StatusCode, link.Location)
+					p.colorize(link.StatusCode).Fprintf(w, "└─── [%d] %s\n", link.StatusCode, link.Location)
 					continue
 				}
-				p.colorize(link.StatusCode).Fprintf(w, "├─── [%d] %s \n", link.StatusCode, link.Location)
+				p.colorize(link.StatusCode).Fprintf(w, "├─── [%d] %s\n", link.StatusCode, link.Location)
 			}
 		}
 	}

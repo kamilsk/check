@@ -81,7 +81,7 @@ func (r *Report) Get() error {
 			page := r.findPage(e.Request.URL)
 			page.Links = append(page.Links, link)
 
-			// TODO it can return
+			// TODO it can return error
 			// &errors.errorString{s:""}
 			// &errors.errorString{s:"URL already visited"}
 			e.Request.Visit(href)
