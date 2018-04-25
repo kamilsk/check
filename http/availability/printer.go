@@ -32,6 +32,10 @@ type Printer struct {
 
 func (p *Printer) Print(w io.Writer) {
 	for _, report := range p.reports {
+		if err := report.Error(); err != nil {
+			p.colorize(999).Fprintf(w, "report %q has error %q\n", report.Name(), err)
+			continue
+		}
 		pages := pagesByLocation(report.Pages())
 		sort.Sort(pages)
 		for _, page := range pages {

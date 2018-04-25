@@ -17,6 +17,7 @@ func CreateReport(rawURL string) *Report {
 func NewReport(rawURL string) *Report {
 	location, err := url.Parse(rawURL)
 	return &Report{
+		name:     rawURL,
 		error:    errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 		location: location,
 		mu:       &sync.RWMutex{}, pages: make([]*Page, 0, 8), journal: make(map[string]*Link),
@@ -42,12 +43,17 @@ func (l *Reports) Fill(rawURLs []string) {
 }
 
 type Report struct {
+	name     string
 	error    error
 	location *url.URL
 	mu       *sync.RWMutex
 	pages    []*Page
 	journal  map[string]*Link
 }
+
+func (r *Report) Name() string { return r.name }
+
+func (r *Report) Error() error { return r.error }
 
 func (r *Report) Get() error {
 	if r.error != nil {
