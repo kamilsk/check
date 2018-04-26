@@ -17,6 +17,7 @@ const (
 	head = "[%d] %s\n"
 	body = "    ├─── [%d] %s\n"
 	foot = "    └─── [%d] %s\n"
+	sep  = " -> "
 )
 
 var colors = map[string]*color.Color{
@@ -64,10 +65,10 @@ func (p *Printer) Print() {
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				if i == last {
-					colorize(link.StatusCode).Fprintf(w, foot, link.StatusCode, join(link.Location, link.Redirect))
+					colorize(link.StatusCode).Fprintf(w, foot, link.StatusCode, link.FullLocation(sep))
 					continue
 				}
-				colorize(link.StatusCode).Fprintf(w, body, link.StatusCode, join(link.Location, link.Redirect))
+				colorize(link.StatusCode).Fprintf(w, body, link.StatusCode, link.FullLocation(sep))
 			}
 		}
 	}
@@ -123,10 +124,3 @@ func (l linksByStatusCode) Len() int { return len(l) }
 func (l linksByStatusCode) Less(i, j int) bool { return l[i].StatusCode < l[j].StatusCode }
 
 func (l linksByStatusCode) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-
-func join(location, redirect string) string {
-	if redirect == "" {
-		return location
-	}
-	return location + " -> " + redirect
-}

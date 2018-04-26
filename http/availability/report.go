@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +16,8 @@ func NewReport(options ...func(*Report)) *Report {
 }
 
 type Report struct {
-	sites []*Site
+	binder Binder
+	sites  []*Site
 }
 
 func (r *Report) For(rawURLs []string) *Report {
@@ -35,7 +35,7 @@ func (r *Report) Fill() *Report {
 		go func(site *Site) {
 			defer wg.Done()
 			<-start
-			site.Fetch()
+			site.Fetch(r.binder)
 		}(site)
 	}
 	close(start)
@@ -46,7 +46,18 @@ func (r *Report) Fill() *Report {
 func (r *Report) Sites() []Site {
 	sites := make([]Site, 0, len(r.sites))
 	for _, site := range r.sites {
-		sites = append(sites, *site)
+		site := *site
+		{
+			copied := make([]*Page, len(site.Pages))
+			copy(copied, site.Pages)
+			for _, page := range copied {
+				copied := make([]*Link, len(page.Links))
+				copy(copied, page.Links)
+				page.Links = copied
+			}
+			site.Pages = copied
+		}
+		sites = append(sites, site)
 	}
 	return sites
 }
@@ -58,8 +69,9 @@ func NewSite(rawURL string) *Site {
 		url:   u,
 		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 
-		// deprecated
-		mu: &sync.RWMutex{}, Pages: make([]*Page, 0, 8), journal: make(map[string]*Link),
+		Pages: make([]*Page, 0, 8),
+
+		mu: &sync.RWMutex{}, journal: make(map[string]*Link),
 	}
 }
 
@@ -68,6 +80,22 @@ func hostOrRawURL(u *url.URL, raw string) string {
 		return raw
 	}
 	return u.Host
+}
+
+// ~
+
+func ClientProvider(b Binder) func(*Report) {
+	return func(r *Report) {
+		r.binder = b
+	}
+}
+
+type Binder interface {
+	Bind(*Site) Client
+}
+
+type Client interface {
+	Visit(URL string) error
 }
 
 // ~
@@ -88,16 +116,11 @@ func (r *Site) Name() string { return r.name }
 
 func (r *Site) Error() error { return r.error }
 
-func (r *Site) Fetch() error {
+func (r *Site) Fetch(binder Binder) error {
 	if r.error != nil {
 		return r.error
 	}
-	c := colly.NewCollector(
-		UserAgent(), NoRedirect(), colly.IgnoreRobotsTxt(),
-
-		TempOption(r),
-	)
-	return c.Visit(r.url.String())
+	return binder.Bind(r).Visit(r.url.String())
 }
 
 type Page struct {
@@ -114,4 +137,11 @@ type Link struct {
 	Location   string
 	Redirect   string
 	Error      error
+}
+
+func (l *Link) FullLocation(sep string) string {
+	if l.Redirect != "" {
+		return l.Location + sep + l.Redirect
+	}
+	return l.Location
 }

@@ -8,6 +8,23 @@ import (
 	"github.com/gocolly/colly/debug"
 )
 
+// ~
+
+var Colly FunctionalBinder = func(s *Site) Client {
+	c := colly.NewCollector(
+		UserAgent(), NoRedirect(), colly.IgnoreRobotsTxt(),
+
+		TempOption(s),
+	)
+	return c
+}
+
+type FunctionalBinder func(*Site) Client
+
+func (fn FunctionalBinder) Bind(s *Site) Client { return fn(s) }
+
+// ~
+
 const (
 	location = "Location"
 )

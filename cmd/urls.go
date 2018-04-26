@@ -11,10 +11,16 @@ var urlsCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		availability.
-			NewPrinter(availability.Output(cmd.OutOrStdout())).
-			For(availability.NewReport().
-				For(args).
-				Fill()).
+			NewPrinter(
+				availability.Output(cmd.OutOrStdout()),
+			).
+			For(
+				availability.NewReport(
+					availability.ClientProvider(availability.Colly),
+				).
+					For(args).
+					Fill(),
+			).
 			Print()
 	},
 }
