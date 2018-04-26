@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"sync"
 
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -15,9 +17,15 @@ func NewReport(options ...func(*Report)) *Report {
 	return r
 }
 
+func CrawlerForSites(crawler Crawler) func(*Report) {
+	return func(r *Report) {
+		r.crawler = crawler
+	}
+}
+
 type Report struct {
-	binder Binder
-	sites  []*Site
+	crawler Crawler
+	sites   []*Site
 }
 
 func (r *Report) For(rawURLs []string) *Report {
@@ -35,7 +43,7 @@ func (r *Report) Fill() *Report {
 		go func(site *Site) {
 			defer wg.Done()
 			<-start
-			site.Fetch(r.binder)
+			site.Fetch(r.crawler)
 		}(site)
 	}
 	close(start)
@@ -70,8 +78,7 @@ func NewSite(rawURL string) *Site {
 		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 
 		Pages: make([]*Page, 0, 8),
-
-		mu: &sync.RWMutex{}, journal: make(map[string]*Link),
+		mu:    &sync.RWMutex{}, journal: make(map[string]*Link),
 	}
 }
 
@@ -84,18 +91,33 @@ func hostOrRawURL(u *url.URL, raw string) string {
 
 // ~
 
-func ClientProvider(b Binder) func(*Report) {
-	return func(r *Report) {
-		r.binder = b
-	}
+type event interface {
+	family()
 }
 
-type Binder interface {
-	Bind(*Site) Client
+type EventBus chan event
+
+type ErrorEvent struct {
+	event
+
+	StatusCode int
+	Location   string
+	Redirect   string
+	Error      error
 }
 
-type Client interface {
-	Visit(URL string) error
+type ResponseEvent struct {
+	event
+
+	StatusCode int
+	Location   string
+}
+
+type WalkEvent struct {
+	event
+
+	Page string
+	Href string
 }
 
 // ~
@@ -116,11 +138,24 @@ func (r *Site) Name() string { return r.name }
 
 func (r *Site) Error() error { return r.error }
 
-func (r *Site) Fetch(binder Binder) error {
+func (r *Site) Fetch(crawler Crawler) error {
 	if r.error != nil {
 		return r.error
 	}
-	return binder.Bind(r).Visit(r.url.String())
+	wg, bus := &sync.WaitGroup{}, make(EventBus, 1024)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for e := range bus {
+			fmt.Printf("%#+v ~\n", e)
+		}
+	}()
+	if err := crawler.Visit(r.url.String(), bus); err != nil {
+		return err
+	}
+	close(bus)
+	wg.Wait()
+	return nil
 }
 
 type Page struct {

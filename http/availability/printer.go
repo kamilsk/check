@@ -26,18 +26,18 @@ var colors = map[string]*color.Color{
 	danger:  color.New(color.FgRed, color.Bold),
 }
 
-func Output(output io.Writer) func(*Printer) {
-	return func(p *Printer) {
-		p.output = output
-	}
-}
-
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{}
 	for _, f := range options {
 		f(p)
 	}
 	return p
+}
+
+func OutputForPrinting(output io.Writer) func(*Printer) {
+	return func(p *Printer) {
+		p.output = output
+	}
 }
 
 type Printer struct {
@@ -52,10 +52,13 @@ func (p *Printer) For(report *Report) *Printer {
 
 func (p *Printer) Print() {
 	w := p.outOrStdout()
-
+	if p.report == nil {
+		critical().Fprintf(w, "nothing to print")
+		return
+	}
 	for _, site := range p.report.Sites() {
 		if err := site.Error(); err != nil {
-			important().Fprintf(w, "report %q has error %q\n", site.Name(), err)
+			critical().Fprintf(w, "report %q has error %q\n", site.Name(), err)
 			continue
 		}
 		sort.Sort(pagesByLocation(site.Pages))
@@ -92,20 +95,20 @@ func colorize(statusCode int) typewriter {
 		tw, _ = colors[danger]
 	}
 	if tw == nil {
-		tw = defaultTypewriter(fmt.Fprintf)
+		tw = typewriterFunc(fmt.Fprintf)
 	}
 	return tw
 }
 
-func important() typewriter { return colorize(999) }
+func critical() typewriter { return colorize(999) }
 
 type typewriter interface {
 	Fprintf(io.Writer, string, ...interface{}) (int, error)
 }
 
-type defaultTypewriter func(io.Writer, string, ...interface{}) (int, error)
+type typewriterFunc func(io.Writer, string, ...interface{}) (int, error)
 
-func (fn defaultTypewriter) Fprintf(w io.Writer, format string, a ...interface{}) (int, error) {
+func (fn typewriterFunc) Fprintf(w io.Writer, format string, a ...interface{}) (int, error) {
 	return fn(w, format, a...)
 }
 

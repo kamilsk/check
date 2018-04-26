@@ -12,11 +12,11 @@ var urlsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		availability.
 			NewPrinter(
-				availability.Output(cmd.OutOrStdout()),
+				availability.OutputForPrinting(cmd.OutOrStdout()),
 			).
 			For(
 				availability.NewReport(
-					availability.ClientProvider(availability.Colly),
+					availability.CrawlerForSites(availability.CrawlerColly("curl/7.54.0")),
 				).
 					For(args).
 					Fill(),

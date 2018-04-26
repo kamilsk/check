@@ -6,39 +6,95 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
+	"github.com/pkg/errors"
 )
-
-// ~
-
-var Colly FunctionalBinder = func(s *Site) Client {
-	c := colly.NewCollector(
-		UserAgent(), NoRedirect(), colly.IgnoreRobotsTxt(),
-
-		TempOption(s),
-	)
-	return c
-}
-
-type FunctionalBinder func(*Site) Client
-
-func (fn FunctionalBinder) Bind(s *Site) Client { return fn(s) }
-
-// ~
 
 const (
 	location = "Location"
 )
 
-var redirects = map[int]struct{}{
-	http.StatusMovedPermanently:  {},
-	http.StatusFound:             {},
-	http.StatusTemporaryRedirect: {},
-	http.StatusPermanentRedirect: {},
+type Crawler interface {
+	Visit(url string, bus EventBus) error
 }
 
-func UserAgent() func(*colly.Collector) {
-	return colly.UserAgent("check")
+type CrawlerFunc func(string, EventBus) error
+
+func (fn CrawlerFunc) Visit(url string, bus EventBus) error { return fn(url, bus) }
+
+func CrawlerColly(userAgent string) Crawler {
+	return CrawlerFunc(func(entry string, bus EventBus) error {
+		base, err := url.Parse(entry)
+		if err != nil {
+			return errors.Wrapf(err, "parse entry point URL %q", entry)
+		}
+		return colly.NewCollector(
+			colly.UserAgent(userAgent), colly.IgnoreRobotsTxt(), NoRedirect(),
+			OnError(bus), OnResponse(bus), OnHTML(base, bus),
+		).Visit(entry)
+	})
 }
+
+func OnError(bus EventBus) func(*colly.Collector) {
+	return func(c *colly.Collector) {
+		c.OnError(func(resp *colly.Response, err error) {
+			var redirect string
+			if err == http.ErrUseLastResponse {
+				redirect = resp.Headers.Get(location)
+			}
+			bus <- ErrorEvent{
+				StatusCode: resp.StatusCode,
+				Location:   resp.Request.URL.String(),
+				Redirect:   redirect,
+				Error:      err,
+			}
+		})
+	}
+}
+
+func OnResponse(bus EventBus) func(*colly.Collector) {
+	return func(c *colly.Collector) {
+		c.OnResponse(func(resp *colly.Response) {
+			bus <- ResponseEvent{
+				StatusCode: resp.StatusCode,
+				Location:   resp.Request.URL.String(),
+			}
+		})
+	}
+}
+
+func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
+	isPage := func(current *url.URL) bool {
+		return current.Hostname() == base.Hostname()
+	}
+	return func(c *colly.Collector) {
+		c.OnHTML("a[href]", func(el *colly.HTMLElement) {
+			if isPage(el.Request.URL) {
+				href := el.Request.AbsoluteURL(el.Attr("href"))
+				bus <- WalkEvent{
+					Page: el.Request.URL.String(),
+					Href: href,
+				}
+				el.Request.Visit(href)
+			}
+		})
+	}
+}
+
+// ~
+
+type Debugger interface {
+	debug.Debugger
+}
+
+type Option func(*Site)
+
+func WithDebugger() Option {
+	return func(*Site) {
+		//
+	}
+}
+
+// ~
 
 func NoRedirect() func(*colly.Collector) {
 	return func(c *colly.Collector) {
@@ -165,21 +221,4 @@ func (r *Site) setStatus(resp *colly.Response) {
 
 	}
 	link.StatusCode = resp.StatusCode
-	if _, is := redirects[link.StatusCode]; is {
-		link.Redirect = resp.Headers.Get(location)
-	}
-}
-
-// ~
-
-type Debugger interface {
-	debug.Debugger
-}
-
-type Option func(*Site)
-
-func WithDebugger() Option {
-	return func(*Site) {
-		//
-	}
 }
