@@ -23,7 +23,7 @@
   - [x] header with google analytics and short description
   - [x] patreon badge
   - [ ] travis badge
-  - [ ] scrutinizer badge
+  - [x] scrutinizer badge
   - [ ] coveralls badge
   - [ ] godoc badge
   - [x] license badge
@@ -33,8 +33,8 @@
     - [x] installation
     - [x] notes
 - integrations
-  - [ ] slack
+  - [x] slack
   - [ ] travis
-  - [ ] scrutinizer
+  - [x] scrutinizer
   - [ ] gitter
   - [ ] goreleaser
