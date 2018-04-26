@@ -4,8 +4,6 @@ import (
 	"net/url"
 	"sync"
 
-	"fmt"
-
 	"github.com/pkg/errors"
 )
 
@@ -37,16 +35,14 @@ func (r *Report) For(rawURLs []string) *Report {
 }
 
 func (r *Report) Fill() *Report {
-	wg, start := &sync.WaitGroup{}, make(chan struct{})
+	wg := &sync.WaitGroup{}
 	for _, site := range r.sites {
 		wg.Add(1)
 		go func(site *Site) {
 			defer wg.Done()
-			<-start
-			site.Fetch(r.crawler)
+			_ = site.Fetch(r.crawler)
 		}(site)
 	}
-	close(start)
 	wg.Wait()
 	return r
 }
@@ -77,8 +73,7 @@ func NewSite(rawURL string) *Site {
 		url:   u,
 		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 
-		Pages: make([]*Page, 0, 8),
-		mu:    &sync.RWMutex{}, journal: make(map[string]*Link),
+		mu: &sync.RWMutex{}, journal: make(map[string]*Link),
 	}
 }
 
@@ -95,7 +90,7 @@ type event interface {
 	family()
 }
 
-type EventBus chan event
+type EventBus chan<- event
 
 type ErrorEvent struct {
 	event
@@ -127,6 +122,7 @@ type Site struct {
 	url   *url.URL
 	error error
 
+	// not thread-safe
 	Pages []*Page
 
 	// deprecated
@@ -134,28 +130,84 @@ type Site struct {
 	journal map[string]*Link
 }
 
-func (r *Site) Name() string { return r.name }
+func (s *Site) Name() string { return s.name }
 
-func (r *Site) Error() error { return r.error }
+func (s *Site) Error() error { return s.error }
 
-func (r *Site) Fetch(crawler Crawler) error {
-	if r.error != nil {
-		return r.error
+func (s *Site) Fetch(crawler Crawler) error {
+	if s.error != nil {
+		return s.error
 	}
-	wg, bus := &sync.WaitGroup{}, make(EventBus, 1024)
+	wg, events := &sync.WaitGroup{}, make(chan event, 512)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for e := range bus {
-			fmt.Printf("%#+v ~\n", e)
-		}
+		s.listen(events)
 	}()
-	if err := crawler.Visit(r.url.String(), bus); err != nil {
+	if err := crawler.Visit(s.url.String(), events); err != nil {
 		return err
 	}
-	close(bus)
 	wg.Wait()
 	return nil
+}
+
+func (s *Site) listen(events <-chan event) {
+	links := make(map[string]*Link)
+	pages := make(map[string]*Page) // TODO <- page in page
+	linkToPage := make([][2]string, 0, 512)
+	for event := range events {
+		switch e := event.(type) {
+		case ErrorEvent:
+			if _, exists := links[e.Location]; !exists {
+				links[e.Location] = &Link{
+					StatusCode: e.StatusCode,
+					Location:   e.Location,
+					Redirect:   e.Redirect,
+					Error:      e.Error,
+				}
+			}
+		case ResponseEvent:
+			if _, exists := links[e.Location]; !exists {
+				links[e.Location] = &Link{
+					StatusCode: e.StatusCode,
+					Location:   e.Location,
+				}
+			}
+		case WalkEvent:
+			if _, exists := pages[e.Page]; !exists {
+				pages[e.Page] = &Page{Links: make([]*Link, 0, 8)}
+			}
+			linkToPage = append(linkToPage, [2]string{e.Href, e.Page})
+		default:
+			panic(errors.Errorf("unexpected event type %T", e))
+		}
+	}
+	barrier := make(map[*Page]map[*Link]struct{})
+	s.Pages = make([]*Page, 0, len(pages))
+	for location, page := range pages {
+		link, found := links[location]
+		if !found {
+			panic(errors.Errorf("not consistent fetch result. link %q not found", location))
+		}
+		page.Link = link
+		s.Pages = append(s.Pages, page)
+		barrier[page] = make(map[*Link]struct{})
+	}
+	for _, linkAndPage := range linkToPage {
+		linkLocation, pageLocation := linkAndPage[0], linkAndPage[1]
+		link, found := links[linkLocation]
+		if !found {
+			panic(errors.Errorf("not consistent fetch result. link %q not found", linkLocation))
+		}
+		page, found := pages[pageLocation]
+		if !found {
+			panic(errors.Errorf("not consistent fetch result. page %q not found", pageLocation))
+		}
+		if _, exists := barrier[page][link]; !exists {
+			barrier[page][link] = struct{}{}
+			page.Links = append(page.Links, link)
+		}
+	}
 }
 
 type Page struct {
@@ -164,10 +216,7 @@ type Page struct {
 }
 
 type Link struct {
-	// deprecated
-	IsPage bool
-
-	Page       *Page
+	Page       *Page // TODO <- link
 	StatusCode int
 	Location   string
 	Redirect   string
