@@ -1,0 +1,27 @@
+build:
+  dependencies:
+    override:
+    - echo "nothing is needed"
+
+  environment:
+    go: go1.9
+
+  nodes:
+    analysis:
+      tests:
+        override:
+        - go-scrutinizer-run
+        - govet-run
+        - golint-run
+
+  tests:
+    override:
+    - make test
+
+checks:
+  go: true
+
+filter:
+  excluded_paths:
+  - '/vendor/'
+  - '*_test.go'
