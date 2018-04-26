@@ -153,7 +153,7 @@ func (s *Site) Fetch(crawler Crawler) error {
 
 func (s *Site) listen(events <-chan event) {
 	links := make(map[string]*Link)
-	pages := make(map[string]*Page) // TODO <- page in page
+	pages := make(map[string]*Page)
 	linkToPage := make([][2]string, 0, 512)
 	for event := range events {
 		switch e := event.(type) {
@@ -189,7 +189,7 @@ func (s *Site) listen(events <-chan event) {
 		if !found {
 			panic(errors.Errorf("not consistent fetch result. link %q not found", location))
 		}
-		page.Link = link
+		page.Link, link.Page = link, page
 		s.Pages = append(s.Pages, page)
 		barrier[page] = make(map[*Link]struct{})
 	}
@@ -199,13 +199,16 @@ func (s *Site) listen(events <-chan event) {
 		if !found {
 			panic(errors.Errorf("not consistent fetch result. link %q not found", linkLocation))
 		}
+		if _, found := pages[linkLocation]; found {
+			continue // exclude internal links
+		}
 		page, found := pages[pageLocation]
 		if !found {
 			panic(errors.Errorf("not consistent fetch result. page %q not found", pageLocation))
 		}
 		if _, exists := barrier[page][link]; !exists {
-			barrier[page][link] = struct{}{}
 			page.Links = append(page.Links, link)
+			barrier[page][link] = struct{}{}
 		}
 	}
 }
@@ -216,7 +219,7 @@ type Page struct {
 }
 
 type Link struct {
-	Page       *Page // TODO <- link
+	Page       *Page
 	StatusCode int
 	Location   string
 	Redirect   string
