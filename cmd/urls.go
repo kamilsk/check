@@ -16,7 +16,13 @@ var urlsCmd = &cobra.Command{
 			).
 			For(
 				availability.NewReport(
-					availability.CrawlerForSites(availability.CrawlerColly(client())),
+					availability.CrawlerForSites(availability.CrawlerColly(
+						availability.CrawlerConfig{
+							UserAgent: client(),
+							Verbose:   asBool(cmd.Flag("verbose").Value),
+							Output:    cmd.OutOrStderr(),
+						},
+					)),
 				).
 					For(args).
 					Fill(),

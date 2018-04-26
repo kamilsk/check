@@ -1,6 +1,7 @@
 package availability
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 
@@ -17,21 +18,34 @@ type Crawler interface {
 	Visit(url string, bus EventBus) error
 }
 
+type CrawlerConfig struct {
+	UserAgent string
+	Verbose   bool
+	Output    io.Writer
+}
+
 type CrawlerFunc func(string, EventBus) error
 
 func (fn CrawlerFunc) Visit(url string, bus EventBus) error { return fn(url, bus) }
 
-func CrawlerColly(userAgent string) Crawler {
+func CrawlerColly(config CrawlerConfig) Crawler {
 	return CrawlerFunc(func(entry string, bus EventBus) error {
 		defer close(bus)
 		base, err := url.Parse(entry)
 		if err != nil {
 			return errors.Wrapf(err, "parse entry point URL %q", entry)
 		}
-		return colly.NewCollector(
-			colly.UserAgent(userAgent), colly.IgnoreRobotsTxt(), NoRedirect(),
-			OnError(bus), OnResponse(bus), OnHTML(base, bus),
-		).Visit(entry)
+		options := make([]func(*colly.Collector), 0, 7)
+		options = append(options, colly.UserAgent(config.UserAgent))
+		options = append(options, colly.IgnoreRobotsTxt())
+		if config.Verbose {
+			options = append(options, colly.Debugger(&debug.LogDebugger{Output: config.Output}))
+		}
+		options = append(options, NoRedirect())
+		options = append(options, OnError(bus))
+		options = append(options, OnResponse(bus))
+		options = append(options, OnHTML(base, bus))
+		return colly.NewCollector(options...).Visit(entry)
 	})
 }
 
@@ -86,19 +100,5 @@ func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 				el.Request.Visit(href)
 			}
 		})
-	}
-}
-
-// TODO use
-
-type Debugger interface {
-	debug.Debugger
-}
-
-type Option func(*Site)
-
-func WithDebugger() Option {
-	return func(*Site) {
-		//
 	}
 }

@@ -40,7 +40,7 @@ func (r *Report) Fill() *Report {
 		wg.Add(1)
 		go func(site *Site) {
 			defer wg.Done()
-			_ = site.Fetch(r.crawler)
+			_ = site.Fetch(r.crawler) //fix:golang.org/x/sync/errgroup ?
 		}(site)
 	}
 	wg.Wait()
@@ -72,62 +72,16 @@ func NewSite(rawURL string) *Site {
 		name:  hostOrRawURL(u, rawURL),
 		url:   u,
 		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
-
-		mu: &sync.RWMutex{}, journal: make(map[string]*Link),
 	}
 }
-
-func hostOrRawURL(u *url.URL, raw string) string {
-	if u == nil {
-		return raw
-	}
-	return u.Host
-}
-
-// ~
-
-type event interface {
-	family()
-}
-
-type EventBus chan<- event
-
-type ErrorEvent struct {
-	event
-
-	StatusCode int
-	Location   string
-	Redirect   string
-	Error      error
-}
-
-type ResponseEvent struct {
-	event
-
-	StatusCode int
-	Location   string
-}
-
-type WalkEvent struct {
-	event
-
-	Page string
-	Href string
-}
-
-// ~
 
 type Site struct {
 	name  string
 	url   *url.URL
 	error error
 
-	// not thread-safe
+	//fix:not thread-safe
 	Pages []*Page
-
-	// deprecated
-	mu      *sync.RWMutex
-	journal map[string]*Link
 }
 
 func (s *Site) Name() string { return s.name }
@@ -136,6 +90,10 @@ func (s *Site) Error() error { return s.error }
 
 func (s *Site) Fetch(crawler Crawler) error {
 	if s.error != nil {
+		return s.error
+	}
+	if crawler == nil {
+		s.error = errors.New("crawler is not provided")
 		return s.error
 	}
 	wg, events := &sync.WaitGroup{}, make(chan event, 512)
@@ -231,4 +189,40 @@ func (l *Link) FullLocation(sep string) string {
 		return l.Location + sep + l.Redirect
 	}
 	return l.Location
+}
+
+func hostOrRawURL(u *url.URL, raw string) string {
+	if u == nil {
+		return raw
+	}
+	return u.Host
+}
+
+type event interface {
+	family()
+}
+
+type EventBus chan<- event
+
+type ErrorEvent struct {
+	event
+
+	StatusCode int
+	Location   string
+	Redirect   string
+	Error      error
+}
+
+type ResponseEvent struct {
+	event
+
+	StatusCode int
+	Location   string
+}
+
+type WalkEvent struct {
+	event
+
+	Page string
+	Href string
 }
