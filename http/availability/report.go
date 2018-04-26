@@ -1,7 +1,6 @@
 package availability
 
 import (
-	"net/http"
 	"net/url"
 	"sync"
 
@@ -9,65 +8,87 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	location = "Location"
-)
-
-var redirects = map[int]struct{}{
-	http.StatusMovedPermanently:  {},
-	http.StatusFound:             {},
-	http.StatusTemporaryRedirect: {},
-	http.StatusPermanentRedirect: {},
-}
-
-func CreateReport(rawURL string) *Report {
-	report := NewReport(rawURL)
-	report.error = report.Get()
-	return report
-}
-
-func NewReport(rawURL string) *Report {
-	location, err := url.Parse(rawURL)
-	return &Report{
-		name:     rawURL,
-		error:    errors.Wrapf(err, "parse rawURL %q for report", rawURL),
-		location: location,
-		mu:       &sync.RWMutex{}, pages: make([]*Page, 0, 8), journal: make(map[string]*Link),
+func NewReport(options ...func(*Report)) *Report {
+	r := &Report{}
+	for _, f := range options {
+		f(r)
 	}
-}
-
-type Reports []*Report
-
-func (l *Reports) Fill(rawURLs []string) {
-	*l = make([]*Report, len(rawURLs))
-
-	wg, start := &sync.WaitGroup{}, make(chan struct{})
-	for i, rawURL := range rawURLs {
-		wg.Add(1)
-		go func(idx int, rawURL string) {
-			defer wg.Done()
-			<-start
-			(*l)[i] = CreateReport(rawURL)
-		}(i, rawURL)
-	}
-	close(start)
-	wg.Wait()
+	return r
 }
 
 type Report struct {
-	name     string
-	error    error
-	location *url.URL
-	mu       *sync.RWMutex
-	pages    []*Page
-	journal  map[string]*Link
+	sites []*Site
 }
 
-func (r *Report) Name() string { return r.name }
+func (r *Report) For(rawURLs []string) *Report {
+	r.sites = make([]*Site, 0, len(rawURLs))
+	for _, rawURL := range rawURLs {
+		r.sites = append(r.sites, NewSite(rawURL))
+	}
+	return r
+}
 
-func (r *Report) Error() error { return r.error }
+func (r *Report) Fill() *Report {
+	wg, start := &sync.WaitGroup{}, make(chan struct{})
+	for _, site := range r.sites {
+		wg.Add(1)
+		go func(site *Site) {
+			defer wg.Done()
+			<-start
+			site.Fetch()
+		}(site)
+	}
+	close(start)
+	wg.Wait()
+	return r
+}
 
-func (r *Report) Get() error {
+func (r *Report) Sites() []Site {
+	sites := make([]Site, 0, len(r.sites))
+	for _, site := range r.sites {
+		sites = append(sites, *site)
+	}
+	return sites
+}
+
+func NewSite(rawURL string) *Site {
+	u, err := url.Parse(rawURL)
+	return &Site{
+		name:  hostOrRawURL(u, rawURL),
+		url:   u,
+		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
+
+		// deprecated
+		mu: &sync.RWMutex{}, Pages: make([]*Page, 0, 8), journal: make(map[string]*Link),
+	}
+}
+
+func hostOrRawURL(u *url.URL, raw string) string {
+	if u == nil {
+		return raw
+	}
+	return u.Host
+}
+
+// ~
+
+type Site struct {
+	name  string
+	url   *url.URL
+	error error
+
+	Pages []*Page
+
+	// deprecated
+	mu      *sync.RWMutex
+	journal map[string]*Link
+}
+
+func (r *Site) Name() string { return r.name }
+
+func (r *Site) Error() error { return r.error }
+
+func (r *Site) Fetch() error {
 	if r.error != nil {
 		return r.error
 	}
@@ -76,11 +97,7 @@ func (r *Report) Get() error {
 
 		TempOption(r),
 	)
-	return c.Visit(r.location.String())
-}
-
-func (r *Report) Pages() []*Page {
-	return r.pages
+	return c.Visit(r.url.String())
 }
 
 type Page struct {
@@ -89,8 +106,12 @@ type Page struct {
 }
 
 type Link struct {
-	IsPage     bool
+	// deprecated
+	IsPage bool
+
+	Page       *Page
 	StatusCode int
 	Location   string
 	Redirect   string
+	Error      error
 }

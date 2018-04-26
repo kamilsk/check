@@ -8,6 +8,17 @@ import (
 	"github.com/gocolly/colly/debug"
 )
 
+const (
+	location = "Location"
+)
+
+var redirects = map[int]struct{}{
+	http.StatusMovedPermanently:  {},
+	http.StatusFound:             {},
+	http.StatusTemporaryRedirect: {},
+	http.StatusPermanentRedirect: {},
+}
+
 func UserAgent() func(*colly.Collector) {
 	return colly.UserAgent("check")
 }
@@ -22,7 +33,7 @@ func NoRedirect() func(*colly.Collector) {
 
 // ~
 
-func TempOption(r *Report) func(*colly.Collector) {
+func TempOption(r *Site) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnRequest(func(req *colly.Request) {
 			link := r.createLink(req.URL)
@@ -58,7 +69,7 @@ func TempOption(r *Report) func(*colly.Collector) {
 	}
 }
 
-func (r *Report) createLink(location *url.URL) *Link {
+func (r *Site) createLink(location *url.URL) *Link {
 	href := location.String()
 
 	{
@@ -85,7 +96,7 @@ func (r *Report) createLink(location *url.URL) *Link {
 	}
 }
 
-func (r *Report) createLinkByHref(href string) *Link {
+func (r *Site) createLinkByHref(href string) *Link {
 	location, err := url.Parse(href)
 	if err != nil {
 
@@ -95,15 +106,15 @@ func (r *Report) createLinkByHref(href string) *Link {
 	return r.createLink(location)
 }
 
-func (r *Report) createPage(link *Link) *Page {
+func (r *Site) createPage(link *Link) *Page {
 	r.mu.Lock()
 	page := &Page{Link: link, Links: make([]*Link, 0, 8)}
-	r.pages = append(r.pages, page)
+	r.Pages = append(r.Pages, page)
 	r.mu.Unlock()
 	return page
 }
 
-func (r *Report) findPage(location *url.URL) *Page {
+func (r *Site) findPage(location *url.URL) *Page {
 	href := location.String()
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -113,7 +124,7 @@ func (r *Report) findPage(location *url.URL) *Page {
 		panic("can't find link with URL " + href) // TODO set error instead of panic
 
 	}
-	for _, page := range r.pages {
+	for _, page := range r.Pages {
 		if page.Link == link {
 			return page
 		}
@@ -122,11 +133,11 @@ func (r *Report) findPage(location *url.URL) *Page {
 	panic("can't find page with URL " + href) // TODO set error instead of panic
 }
 
-func (r *Report) isPage(location *url.URL) bool {
-	return location.Hostname() == r.location.Hostname()
+func (r *Site) isPage(location *url.URL) bool {
+	return location.Hostname() == r.url.Hostname()
 }
 
-func (r *Report) setStatus(resp *colly.Response) {
+func (r *Site) setStatus(resp *colly.Response) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	href := resp.Request.URL.String()
@@ -148,10 +159,10 @@ type Debugger interface {
 	debug.Debugger
 }
 
-type Option func(*Report)
+type Option func(*Site)
 
 func WithDebugger() Option {
-	return func(*Report) {
+	return func(*Site) {
 		//
 	}
 }

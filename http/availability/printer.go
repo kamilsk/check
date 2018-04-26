@@ -3,6 +3,7 @@ package availability
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 
 	"github.com/fatih/color"
@@ -24,25 +25,42 @@ var colors = map[string]*color.Color{
 	danger:  color.New(color.FgRed, color.Bold),
 }
 
-func NewPrinter(reports []*Report) *Printer {
-	return &Printer{reports: reports}
+func Output(output io.Writer) func(*Printer) {
+	return func(p *Printer) {
+		p.output = output
+	}
+}
+
+func NewPrinter(options ...func(*Printer)) *Printer {
+	p := &Printer{}
+	for _, f := range options {
+		f(p)
+	}
+	return p
 }
 
 type Printer struct {
-	reports []*Report
+	output io.Writer
+	report *Report
 }
 
-func (p *Printer) Print(w io.Writer) {
-	for _, report := range p.reports {
-		if err := report.Error(); err != nil {
-			important().Fprintf(w, "report %q has error %q\n", report.Name(), err)
+func (p *Printer) For(report *Report) *Printer {
+	p.report = report
+	return p
+}
+
+func (p *Printer) Print() {
+	w := p.outOrStdout()
+
+	for _, site := range p.report.Sites() {
+		if err := site.Error(); err != nil {
+			important().Fprintf(w, "report %q has error %q\n", site.Name(), err)
 			continue
 		}
-		pages := pagesByLocation(report.Pages())
-		sort.Sort(pages)
-		for _, page := range pages {
-			colorize(page.StatusCode).Fprintf(w, head, page.StatusCode, page.Location)
+		sort.Sort(pagesByLocation(site.Pages))
+		for _, page := range site.Pages {
 			last := len(page.Links) - 1
+			colorize(page.StatusCode).Fprintf(w, head, page.StatusCode, page.Location)
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				if i == last {
@@ -55,38 +73,38 @@ func (p *Printer) Print(w io.Writer) {
 	}
 }
 
-func colorize(statusCode int) printer {
-	var p printer
+func (p *Printer) outOrStdout() io.Writer {
+	if p.output != nil {
+		return p.output
+	}
+	return os.Stdout
+}
+
+func colorize(statusCode int) typewriter {
+	var tw typewriter
 	switch {
 	case statusCode < 300:
-		p, _ = colors[success]
+		tw, _ = colors[success]
 	case statusCode >= 300 && statusCode < 400:
-		p, _ = colors[warning]
+		tw, _ = colors[warning]
 	case statusCode >= 400:
-		p, _ = colors[danger]
+		tw, _ = colors[danger]
 	}
-	if p == nil {
-		p = defaultPrinter(fmt.Fprintf)
+	if tw == nil {
+		tw = defaultTypewriter(fmt.Fprintf)
 	}
-	return p
+	return tw
 }
 
-func important() printer { return colorize(999) }
+func important() typewriter { return colorize(999) }
 
-func join(location, redirect string) string {
-	if redirect == "" {
-		return location
-	}
-	return location + " -> " + redirect
-}
-
-type printer interface {
+type typewriter interface {
 	Fprintf(io.Writer, string, ...interface{}) (int, error)
 }
 
-type defaultPrinter func(io.Writer, string, ...interface{}) (int, error)
+type defaultTypewriter func(io.Writer, string, ...interface{}) (int, error)
 
-func (fn defaultPrinter) Fprintf(w io.Writer, format string, a ...interface{}) (int, error) {
+func (fn defaultTypewriter) Fprintf(w io.Writer, format string, a ...interface{}) (int, error) {
 	return fn(w, format, a...)
 }
 
@@ -105,3 +123,10 @@ func (l linksByStatusCode) Len() int { return len(l) }
 func (l linksByStatusCode) Less(i, j int) bool { return l[i].StatusCode < l[j].StatusCode }
 
 func (l linksByStatusCode) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+
+func join(location, redirect string) string {
+	if redirect == "" {
+		return location
+	}
+	return location + " -> " + redirect
+}

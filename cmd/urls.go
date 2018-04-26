@@ -10,10 +10,12 @@ var urlsCmd = &cobra.Command{
 	Short: "Check all internal URLs on availability",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var reports availability.Reports
-		reports.Fill(args)
-		printer := availability.NewPrinter(reports)
-		printer.Print(cmd.OutOrStdout())
+		availability.
+			NewPrinter(availability.Output(cmd.OutOrStdout())).
+			For(availability.NewReport().
+				For(args).
+				Fill()).
+			Print()
 	},
 }
 
