@@ -3,6 +3,7 @@
 > Check Something as a Service.
 
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/octolab)
+[![Build Status](https://travis-ci.org/kamilsk/check.svg?branch=master)](https://travis-ci.org/kamilsk/check)
 [![Code Quality](https://scrutinizer-ci.com/g/kamilsk/check/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/kamilsk/check/?branch=master)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
