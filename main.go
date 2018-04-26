@@ -36,6 +36,7 @@ func (app application) Run() {
 				"Version %s (commit: %s, build date: %s, go version: %s, compiler: %s, platform: %s)\n",
 				version, commit, date, runtime.Version(), runtime.Compiler, runtime.GOOS+"/"+runtime.GOARCH)
 		},
+		Version: version,
 	})
 	if err := func() (err error) {
 		defer grace.Recover(&err)

@@ -16,7 +16,7 @@ var urlsCmd = &cobra.Command{
 			).
 			For(
 				availability.NewReport(
-					availability.CrawlerForSites(availability.CrawlerColly("curl/7.54.0")),
+					availability.CrawlerForSites(availability.CrawlerColly(client())),
 				).
 					For(args).
 					Fill(),
