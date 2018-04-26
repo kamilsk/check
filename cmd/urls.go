@@ -16,3 +16,7 @@ var urlsCmd = &cobra.Command{
 		printer.Print(cmd.OutOrStdout())
 	},
 }
+
+func init() {
+	urlsCmd.Flags().BoolP("verbose", "v", false, "turn on verbose mode")
+}
