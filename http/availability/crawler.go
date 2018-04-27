@@ -60,14 +60,10 @@ func NoRedirect() func(*colly.Collector) {
 func OnError(bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnError(func(resp *colly.Response, err error) {
-			var redirect string
-			if err == http.ErrUseLastResponse {
-				redirect = resp.Headers.Get(locationHeader)
-			}
 			bus <- ErrorEvent{
 				StatusCode: resp.StatusCode,
 				Location:   resp.Request.URL.String(),
-				Redirect:   redirect,
+				Redirect:   resp.Headers.Get(locationHeader),
 				Error:      err,
 			}
 		})

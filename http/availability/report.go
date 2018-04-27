@@ -81,7 +81,8 @@ type Site struct {
 	error error
 
 	//fix:not thread-safe
-	Pages []*Page
+	Pages    []*Page
+	Problems []ProblemEvent
 }
 
 func (s *Site) Name() string { return s.name }
@@ -136,6 +137,8 @@ func (s *Site) listen(events <-chan event) {
 				pages[e.Page] = &Page{Links: make([]*Link, 0, 8)}
 			}
 			linkToPage = append(linkToPage, [2]string{e.Href, e.Page})
+		case ProblemEvent:
+			s.Problems = append(s.Problems, e)
 		default:
 			panic(errors.Errorf("unexpected event type %T", e))
 		}
@@ -225,4 +228,11 @@ type WalkEvent struct {
 
 	Page string
 	Href string
+}
+
+type ProblemEvent struct {
+	event
+
+	Message string
+	Context interface{}
 }
