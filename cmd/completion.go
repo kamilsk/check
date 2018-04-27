@@ -23,11 +23,10 @@ var completionCmd = &cobra.Command{
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if args[0] == bashFormat {
-			panicIfError(cmd.Parent().GenBashCompletion(cmd.OutOrStdout()))
-			return
+			return cmd.Parent().GenBashCompletion(cmd.OutOrStdout())
 		}
-		panicIfError(cmd.Parent().GenZshCompletion(cmd.OutOrStdout()))
+		return cmd.Parent().GenZshCompletion(cmd.OutOrStdout())
 	},
 }

@@ -43,6 +43,16 @@ $ egg bitbucket.org/kamilsk/check@^1.0.0 -- make test install
 
 > [egg](https://github.com/kamilsk/egg) is an `extended go get`.
 
+### Bash and Zsh completions
+
+You can find completion files [here](https://github.com/kamilsk/shared/tree/dotfiles/bash_completion.d) or
+build your own using these commands
+
+```bash
+$ check completion bash > /path/to/bash_completion.d/check.sh
+$ check completion zsh  > /path/to/zsh-completions/_check.zsh
+```
+
 ## Notes
 
 - tested on Go 1.5, 1.6, 1.7, 1.8, 1.9 and 1.10
