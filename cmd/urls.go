@@ -10,24 +10,26 @@ var urlsCmd = &cobra.Command{
 	Short: "Check all internal URLs on availability",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		availability.
-			NewPrinter(
-				availability.OutputForPrinting(cmd.OutOrStdout()),
-			).
-			For(
-				availability.NewReport(
-					availability.CrawlerForSites(availability.CrawlerColly(
-						availability.CrawlerConfig{
-							UserAgent: client(),
-							Verbose:   asBool(cmd.Flag("verbose").Value),
-							Output:    cmd.OutOrStderr(),
-						},
-					)),
+		panicIfError(
+			availability.
+				NewPrinter(
+					availability.OutputForPrinting(cmd.OutOrStdout()),
 				).
-					For(args).
-					Fill(),
-			).
-			Print()
+				For(
+					availability.NewReport(
+						availability.CrawlerForSites(availability.CrawlerColly(
+							availability.CrawlerConfig{
+								UserAgent: client(),
+								Verbose:   asBool(cmd.Flag("verbose").Value),
+								Output:    cmd.OutOrStderr(),
+							},
+						)),
+					).
+						For(args).
+						Fill(),
+				).
+				Print(),
+		)
 	},
 }
 

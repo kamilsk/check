@@ -50,11 +50,11 @@ func (p *Printer) For(report *Report) *Printer {
 	return p
 }
 
-func (p *Printer) Print() {
+func (p *Printer) Print() error {
 	w := p.outOrStdout()
 	if p.report == nil {
 		critical().Fprintf(w, "nothing to print")
-		return
+		return nil
 	}
 	for _, site := range p.report.Sites() {
 		if err := site.Error(); err != nil {
@@ -83,6 +83,7 @@ func (p *Printer) Print() {
 			}
 		}
 	}
+	return nil
 }
 
 func (p *Printer) outOrStdout() io.Writer {

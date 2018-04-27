@@ -11,7 +11,7 @@ import (
 var RootCmd = &cobra.Command{Short: "check"}
 
 func init() {
-	RootCmd.AddCommand(urlsCmd)
+	RootCmd.AddCommand(completionCmd, urlsCmd)
 }
 
 func asBool(value fmt.Stringer) bool {
@@ -31,4 +31,10 @@ func client() string {
 		return fmt.Sprintf("%s/%s", RootCmd.Short, v.Version)
 	}
 	return RootCmd.Short
+}
+
+func panicIfError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
