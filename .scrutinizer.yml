@@ -13,11 +13,8 @@ build:
         - go-scrutinizer-run
         - govet-run
         - golint-run
-
-  tests:
-    override:
-    - command: make test-with-coverage-profile ARGS='-timeout=1s'
-      coverage: { file: cover.out, format: count }
+        - command: make test-with-coverage-profile ARGS='-timeout=1s'
+          coverage: { file: cover.out, format: go-cc }
 
 checks:
   go: true
