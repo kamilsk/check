@@ -3,9 +3,10 @@ language: go
 go:
 - master
 - 1.x
-- 1.5.x
-- 1.6.x
-- 1.7.x
+# blocked by issue#39
+#- 1.5.x
+#- 1.6.x
+#- 1.7.x
 - 1.8.x
 - 1.9.x
 - 1.10.x
@@ -17,17 +18,13 @@ matrix:
 
 sudo: false
 
-before_install:
-#- export GO_TEST_COVERAGE_FILENAME='coverage.out'
-- export GO15VENDOREXPERIMENT=1
-
-#- go get github.com/mattn/goveralls
+#before_install:
+#- export GO15VENDOREXPERIMENT=1
 
 script:
 - make test-with-coverage-profile ARGS='-timeout=1s'
 
 after_success:
-#- goveralls -service=travis-ci -coverprofile="${GO_TEST_COVERAGE_FILENAME}"
 - echo $TRAVIS_GO_VERSION ":" $TRAVIS_TAG
 - if [[ $TRAVIS_GO_VERSION == 1.10* ]] && [ -n "$TRAVIS_TAG" ]; then curl -sL https://git.io/goreleaser | bash; fi
 

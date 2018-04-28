@@ -55,7 +55,7 @@ $ check completion zsh  > /path/to/zsh-completions/_check.zsh
 
 ## Notes
 
-- tested on Go 1.5, 1.6, 1.7, 1.8, 1.9 and 1.10
+- tested on Go 1.8, 1.9 and 1.10
 
 ---
 

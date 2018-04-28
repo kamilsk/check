@@ -205,7 +205,7 @@ type event interface {
 	family()
 }
 
-// NewReadableEventBus returns RW channel of events.
+// NewReadableEventBus returns rw-channel of events.
 func NewReadableEventBus(size int) chan event {
 	return make(chan event, size)
 }

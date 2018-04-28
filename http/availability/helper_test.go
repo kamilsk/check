@@ -2,10 +2,28 @@ package availability_test
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
+)
+
+var (
+	html = `
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Links</title>
+</head>
+<body>
+<ul>{{ range . }}
+    <li><a href="{{ .Href }}">{{ .Text }}</a></li>
+{{ end }}</ul>
+</body>
+`
+	tpl = template.Must(template.New("links").Parse(html))
 )
 
 var echoCode = func(rw http.ResponseWriter, req *http.Request) error {
