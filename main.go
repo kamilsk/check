@@ -11,7 +11,6 @@ import (
 
 	_ "github.com/oxequa/grace"
 	_ "github.com/spf13/viper"
-	_ "github.com/stretchr/testify"
 )
 
 const (

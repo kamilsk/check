@@ -36,7 +36,9 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 			return errors.Wrapf(err, "parse entry point URL %q", entry)
 		}
 		options := make([]func(*colly.Collector), 0, 7)
-		options = append(options, colly.UserAgent(config.UserAgent))
+		if config.UserAgent != "" {
+			options = append(options, colly.UserAgent(config.UserAgent))
+		}
 		options = append(options, colly.IgnoreRobotsTxt())
 		if config.Verbose {
 			options = append(options, colly.Debugger(&debug.LogDebugger{Output: config.Output}))
@@ -60,18 +62,7 @@ func NoRedirect() func(*colly.Collector) {
 func OnError(bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnError(func(resp *colly.Response, err error) {
-			location := resp.Request.URL.String()
-
-			//issue#30:on investigation
-			if location == "" {
-				bus <- ProblemEvent{Message: "empty location", Context: struct {
-					Response *colly.Response
-					Error    error
-				}{resp, err}}
-				return
-			}
-
-			var redirect string
+			location, redirect := resp.Request.URL.String(), ""
 			if resp.Headers != nil {
 				redirect = resp.Headers.Get(locationHeader)
 			}
@@ -89,13 +80,6 @@ func OnResponse(bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnResponse(func(resp *colly.Response) {
 			location := resp.Request.URL.String()
-
-			//issue#30:on investigation
-			if location == "" {
-				bus <- ProblemEvent{Message: "empty location", Context: resp}
-				return
-			}
-
 			bus <- ResponseEvent{
 				StatusCode: resp.StatusCode,
 				Location:   location,
@@ -112,16 +96,14 @@ func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 		c.OnHTML("a[href]", func(el *colly.HTMLElement) {
 			if isPage(el.Request.URL) {
 				href := el.Request.AbsoluteURL(el.Attr("href"))
-
-				//issue#30:on investigation
 				if href == "" {
+					//issue#30:on investigation:related to bad urls and anchors
 					bus <- ProblemEvent{Message: "empty location", Context: struct {
 						Page string
 						Href string
 					}{el.Request.URL.String(), el.Attr("href")}}
 					return
 				}
-
 				bus <- WalkEvent{
 					Page: el.Request.URL.String(),
 					Href: href,

@@ -16,7 +16,7 @@ build:
 
   tests:
     override:
-    - make test
+    - make test-with-coverage-profile ARGS='-timeout=1s'
 
 checks:
   go: true

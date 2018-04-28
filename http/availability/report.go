@@ -205,6 +205,11 @@ type event interface {
 	family()
 }
 
+// NewReadableEventBus returns RW channel of events.
+func NewReadableEventBus(size int) chan event {
+	return make(chan event, size)
+}
+
 type EventBus chan<- event
 
 type ErrorEvent struct {
