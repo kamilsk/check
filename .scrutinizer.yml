@@ -18,6 +18,11 @@ build:
     override:
     - command: make test-with-coverage-profile ARGS='-timeout=1s'
       coverage: { file: 'cover.out', format: 'go-cc' }
+    -
+      command: go test -coverprofile=cover-tmp.out
+      coverage:
+          file: 'cover-tmp.out'
+          format: 'go-cc'
 
 checks:
   go: true
