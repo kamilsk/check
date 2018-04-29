@@ -14,15 +14,18 @@ func TestCrawlerColly(t *testing.T) {
 	defer closer()
 
 	{
-		var errorEvents, responseEvents, walkEvents, problemEvents, unknownEvents int
+		var errorEvents, redirectEvents, responseEvents, walkEvents, problemEvents, unknownEvents int
 		wg, bus := &sync.WaitGroup{}, availability.NewReadableEventBus(8)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for event := range bus {
-				switch event.(type) {
+				switch e := event.(type) {
 				case availability.ErrorEvent:
 					errorEvents++
+					if e.Redirect != "" {
+						redirectEvents++
+					}
 				case availability.ResponseEvent:
 					responseEvents++
 				case availability.WalkEvent:
@@ -39,12 +42,13 @@ func TestCrawlerColly(t *testing.T) {
 			Verbose:   true,
 			Output:    ioutil.Discard,
 		})
-		assert.NoError(t, crawler.Visit(site.URL, bus))
+		assert.NoError(t, crawler.Visit(site.URL+"/", bus))
 		wg.Wait()
-		assert.Equal(t, 11, errorEvents)
-		assert.Equal(t, 3, responseEvents)
-		assert.Equal(t, 42, walkEvents)
-		assert.Equal(t, 9, problemEvents)
+		assert.Equal(t, 30, errorEvents)
+		assert.Equal(t, 10, redirectEvents)
+		assert.Equal(t, 8, responseEvents)
+		assert.Equal(t, 39, walkEvents)
+		assert.Equal(t, 2, problemEvents)
 		assert.Empty(t, unknownEvents)
 	}
 

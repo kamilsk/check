@@ -9,7 +9,6 @@ cmd-help:
 cmd-completion:
 	cd $(PKG_DIR) && go run $(GO_FILES) completion bash
 	cd $(PKG_DIR) && go run $(GO_FILES) completion zsh
-	cd $(PKG_DIR) && go run $(GO_FILES) completion something
 
 .PHONY: cmd-urls
 cmd-urls:

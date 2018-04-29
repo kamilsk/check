@@ -31,6 +31,15 @@ var echoCode = func(rw http.ResponseWriter, req *http.Request) error {
 
 	switch code {
 
+	// ok
+	case http.StatusOK:
+		fallthrough
+	case http.StatusCreated:
+		fallthrough
+	case http.StatusAccepted:
+		rw.WriteHeader(code)
+		return nil
+
 	// redirects
 	case http.StatusMovedPermanently:
 		fallthrough
@@ -45,6 +54,29 @@ var echoCode = func(rw http.ResponseWriter, req *http.Request) error {
 		http.Error(rw, http.StatusText(code), code)
 		return nil
 
+	// client errors
+	case http.StatusBadRequest:
+		fallthrough
+	case http.StatusUnauthorized:
+		fallthrough
+	case http.StatusForbidden:
+		fallthrough
+	case http.StatusNotFound:
+		fallthrough
+	// server errors
+	case http.StatusInternalServerError:
+		fallthrough
+	case http.StatusNotImplemented:
+		fallthrough
+	case http.StatusBadGateway:
+		fallthrough
+	case http.StatusServiceUnavailable:
+		fallthrough
+	// and others
+	case http.StatusMultipleChoices:
+		http.Error(rw, http.StatusText(code), code)
+		return nil
+
 	default:
 		return fmt.Errorf("can't handle request %q", req.URL.Path)
 	}
@@ -54,22 +86,46 @@ var echoLinks = func(site1, site2 string) func(http.ResponseWriter, *http.Reques
 	return func(rw http.ResponseWriter, req *http.Request) error {
 		if req.URL.Path == "/" {
 			links := []struct {
-				Href string
+				Href template.URL
 				Text string
 			}{
-				{Href: site1 + "/", Text: "site1"},
-				{Href: site1 + "/301", Text: "site1 - 301"},
-				{Href: site1 + "/302", Text: "site1 - 302"},
-				{Href: site1 + "/303", Text: "site1 - 303"},
-				{Href: site1 + "/307", Text: "site1 - 307"},
-				{Href: site1 + "/308", Text: "site1 - 308"},
+				{Href: template.URL(site1 + "/"), Text: "site1"},
+				{Href: template.URL(site1 + "/200"), Text: "site1 - 200"},
+				{Href: template.URL(site1 + "/201"), Text: "site1 - 201"},
+				{Href: template.URL(site1 + "/202"), Text: "site1 - 202"},
+				{Href: template.URL(site1 + "/301"), Text: "site1 - 301"},
+				{Href: template.URL(site1 + "/302"), Text: "site1 - 302"},
+				{Href: template.URL(site1 + "/303"), Text: "site1 - 303"},
+				{Href: template.URL(site1 + "/307"), Text: "site1 - 307"},
+				{Href: template.URL(site1 + "/308"), Text: "site1 - 308"},
+				{Href: template.URL(site1 + "/400"), Text: "site1 - 400"},
+				{Href: template.URL(site1 + "/401"), Text: "site1 - 401"},
+				{Href: template.URL(site1 + "/403"), Text: "site1 - 403"},
+				{Href: template.URL(site1 + "/404"), Text: "site1 - 404"},
+				{Href: template.URL(site1 + "/500"), Text: "site1 - 500"},
+				{Href: template.URL(site1 + "/501"), Text: "site1 - 501"},
+				{Href: template.URL(site1 + "/502"), Text: "site1 - 502"},
+				{Href: template.URL(site1 + "/503"), Text: "site1 - 503"},
+				{Href: template.URL(site1 + "/300"), Text: "site1 - 300"},
 
-				{Href: site2 + "/", Text: "site2"},
-				{Href: site2 + "/301", Text: "site2 - 301"},
-				{Href: site2 + "/302", Text: "site2 - 302"},
-				{Href: site2 + "/303", Text: "site2 - 303"},
-				{Href: site2 + "/307", Text: "site2 - 307"},
-				{Href: site2 + "/308", Text: "site2 - 308"},
+				{Href: template.URL(site2 + "/"), Text: "site2"},
+				{Href: template.URL(site2 + "/200"), Text: "site2 - 200"},
+				{Href: template.URL(site2 + "/201"), Text: "site2 - 201"},
+				{Href: template.URL(site2 + "/202"), Text: "site2 - 202"},
+				{Href: template.URL(site2 + "/301"), Text: "site2 - 301"},
+				{Href: template.URL(site2 + "/302"), Text: "site2 - 302"},
+				{Href: template.URL(site2 + "/303"), Text: "site2 - 303"},
+				{Href: template.URL(site2 + "/307"), Text: "site2 - 307"},
+				{Href: template.URL(site2 + "/308"), Text: "site2 - 308"},
+				{Href: template.URL(site2 + "/400"), Text: "site2 - 400"},
+				{Href: template.URL(site2 + "/401"), Text: "site2 - 401"},
+				{Href: template.URL(site2 + "/403"), Text: "site2 - 403"},
+				{Href: template.URL(site2 + "/404"), Text: "site2 - 404"},
+				{Href: template.URL(site2 + "/500"), Text: "site2 - 500"},
+				{Href: template.URL(site2 + "/501"), Text: "site2 - 501"},
+				{Href: template.URL(site2 + "/502"), Text: "site2 - 502"},
+				{Href: template.URL(site2 + "/503"), Text: "site2 - 503"},
+				{Href: template.URL(site2 + "/300"), Text: "site2 - 300"},
 
 				//issue#34, fixes issue#30
 				{Href: "#anchor", Text: "anchor"},

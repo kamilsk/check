@@ -90,7 +90,7 @@ func OnResponse(bus EventBus) func(*colly.Collector) {
 
 func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 	isPage := func(current *url.URL) bool {
-		return current.Hostname() == base.Hostname()
+		return current.Host == base.Host
 	}
 	return func(c *colly.Collector) {
 		c.OnHTML("a[href]", func(el *colly.HTMLElement) {
