@@ -44,12 +44,6 @@
   version = "v1.6.0"
 
 [[projects]]
-  name = "github.com/fsnotify/fsnotify"
-  packages = ["."]
-  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
-  version = "v1.4.7"
-
-[[projects]]
   name = "github.com/gobwas/glob"
   packages = [
     ".",
@@ -72,30 +66,13 @@
     "debug",
     "storage"
   ]
-  revision = "2f59bf32ac09d7f1ff31adf0b26033b0a8a9b05a"
+  revision = "1e90aebad3a77f5360bf923dfb7537f5ea8ec0ae"
 
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/hcl"
-  packages = [
-    ".",
-    "hcl/ast",
-    "hcl/parser",
-    "hcl/printer",
-    "hcl/scanner",
-    "hcl/strconv",
-    "hcl/token",
-    "json/parser",
-    "json/scanner",
-    "json/token"
-  ]
-  revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -110,12 +87,6 @@
   version = "v1.2.3"
 
 [[projects]]
-  name = "github.com/magiconair/properties"
-  packages = ["."]
-  revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
-  version = "v1.7.6"
-
-[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
@@ -126,24 +97,6 @@
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mitchellh/mapstructure"
-  packages = ["."]
-  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
-
-[[projects]]
-  name = "github.com/oxequa/grace"
-  packages = ["."]
-  revision = "5b9df9ab2a25c9493fd3daa999d67f766c8f4d89"
-  version = "1.0"
-
-[[projects]]
-  name = "github.com/pelletier/go-toml"
-  packages = ["."]
-  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
-  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -164,43 +117,16 @@
   revision = "3af4cd4741ca4f3eb0c407c034571a6fb0ea529c"
 
 [[projects]]
-  name = "github.com/spf13/afero"
-  packages = [
-    ".",
-    "mem"
-  ]
-  revision = "63644898a8da0bc22138abf860edaf5277b6102e"
-  version = "v1.1.0"
-
-[[projects]]
-  name = "github.com/spf13/cast"
-  packages = ["."]
-  revision = "8965335b8c7107321228e3e3702cab9832751bac"
-  version = "v1.2.0"
-
-[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
   version = "v0.0.2"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/spf13/jwalterweatherman"
-  packages = ["."]
-  revision = "7c0cea34c8ece3fbeb2b27ab9b59511d360fb394"
-
-[[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
-
-[[projects]]
-  name = "github.com/spf13/viper"
-  packages = ["."]
-  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
-  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/stretchr/objx"
@@ -211,9 +137,7 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = [
-    ".",
     "assert",
-    "http",
     "mock"
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
@@ -240,7 +164,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "79b0c6888797020a994db17c8510466c72fe75d9"
+  revision = "cbbc999da32df943dac6cd71eb3ee39e1d7838b9"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -257,14 +181,11 @@
     "encoding/unicode",
     "internal/gen",
     "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
     "internal/utf8internal",
     "language",
     "runes",
     "transform",
-    "unicode/cldr",
-    "unicode/norm"
+    "unicode/cldr"
   ]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
@@ -286,15 +207,9 @@
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
-[[projects]]
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6bd2f53653a11a1660a36ba70710fa4ddca41e5edfc3c82fe8f4ef681649211a"
+  inputs-digest = "3580a3781a006ca1ef09e0c6ca41f894d68003aa46cdc05b521a17440a575f1b"
   solver-name = "gps-cdcl"
   solver-version = 1

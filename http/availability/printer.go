@@ -3,10 +3,12 @@ package availability
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sort"
 
 	"github.com/fatih/color"
+	"github.com/kamilsk/check/errors"
 )
 
 const (
@@ -56,9 +58,12 @@ func (p *Printer) Print() error {
 		critical().Fprintf(w, "nothing to print")
 		return nil
 	}
-	for _, site := range p.report.Sites() {
+	for site := range p.report.Sites() {
 		if err := site.Error(); err != nil {
 			critical().Fprintf(w, "report %q has error %q\n", site.Name(), err)
+			if stack := errors.StackTrace(err); stack != nil {
+				critical().Fprintf(ioutil.Discard, "stack trace: %#+v\n", stack) // for future
+			}
 			continue
 		}
 		sort.Sort(pagesByLocation(site.Pages))

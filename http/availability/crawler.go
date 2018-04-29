@@ -1,6 +1,7 @@
 package availability
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -8,7 +9,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
-	"github.com/pkg/errors"
+	"github.com/kamilsk/check/errors"
 )
 
 const (
@@ -34,7 +35,7 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 		defer close(bus)
 		base, err := url.Parse(entry)
 		if err != nil {
-			return errors.Wrapf(err, "parse entry point URL %q", entry)
+			return errors.WithMessage(err, fmt.Sprintf("parse entry point URL %q", entry))
 		}
 		options := make([]func(*colly.Collector), 0, 7)
 		if config.UserAgent != "" {

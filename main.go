@@ -8,9 +8,6 @@ import (
 
 	"github.com/kamilsk/check/cmd"
 	"github.com/spf13/cobra"
-
-	_ "github.com/oxequa/grace"
-	_ "github.com/spf13/viper"
 )
 
 const (

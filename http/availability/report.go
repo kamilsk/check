@@ -1,10 +1,11 @@
 package availability
 
 import (
+	"fmt"
 	"net/url"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/kamilsk/check/errors"
 )
 
 func NewReport(options ...func(*Report)) *Report {
@@ -24,10 +25,12 @@ func CrawlerForSites(crawler Crawler) func(*Report) {
 type Report struct {
 	crawler Crawler
 	sites   []*Site
+	ready   chan Site
 }
 
 func (r *Report) For(rawURLs []string) *Report {
 	r.sites = make([]*Site, 0, len(rawURLs))
+	r.ready = make(chan Site, len(rawURLs))
 	for _, rawURL := range rawURLs {
 		r.sites = append(r.sites, NewSite(rawURL))
 	}
@@ -39,31 +42,36 @@ func (r *Report) Fill() *Report {
 	for _, site := range r.sites {
 		wg.Add(1)
 		go func(site *Site) {
+			var copied Site
+			copied.name = site.name
 			defer wg.Done()
-			_ = site.Fetch(r.crawler) //fix:golang.org/x/sync/errgroup ?
+			defer func() { r.ready <- copied }()
+			defer errors.Recover(&copied.error)
+			site.error = site.Fetch(r.crawler)
+			{
+				copied = *site
+				pages := make([]*Page, 0, len(site.Pages))
+				for _, page := range site.Pages {
+					page := *page
+					pages = append(pages, &page)
+					links := make([]*Link, 0, len(page.Links))
+					for _, link := range page.Links {
+						link := *link
+						links = append(links, &link)
+					}
+					page.Links = links
+				}
+				copied.Pages = pages
+			}
 		}(site)
 	}
 	wg.Wait()
+	close(r.ready)
 	return r
 }
 
-func (r *Report) Sites() []Site {
-	sites := make([]Site, 0, len(r.sites))
-	for _, site := range r.sites {
-		site := *site
-		{
-			copied := make([]*Page, len(site.Pages))
-			copy(copied, site.Pages)
-			for _, page := range copied {
-				copied := make([]*Link, len(page.Links))
-				copy(copied, page.Links)
-				page.Links = copied
-			}
-			site.Pages = copied
-		}
-		sites = append(sites, site)
-	}
-	return sites
+func (r *Report) Sites() <-chan Site {
+	return r.ready
 }
 
 func NewSite(rawURL string) *Site {
@@ -71,7 +79,7 @@ func NewSite(rawURL string) *Site {
 	return &Site{
 		name:  hostOrRawURL(u, rawURL),
 		url:   u,
-		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
+		error: errors.WithMessage(err, fmt.Sprintf("parse rawURL %q for report", rawURL)),
 	}
 }
 
@@ -80,7 +88,6 @@ type Site struct {
 	url   *url.URL
 	error error
 
-	//fix:not thread-safe
 	Pages    []*Page
 	Problems []ProblemEvent
 }
@@ -94,20 +101,23 @@ func (s *Site) Fetch(crawler Crawler) error {
 		return s.error
 	}
 	if crawler == nil {
-		s.error = errors.New("crawler is not provided")
+		s.error = errors.Simple("crawler is not provided")
 		return s.error
 	}
+	var unexpected error
 	wg, events := &sync.WaitGroup{}, make(chan event, 512)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer errors.Recover(&unexpected)
 		s.listen(events)
 	}()
-	if err := crawler.Visit(s.url.String(), events); err != nil {
-		return err
-	}
+	s.error = crawler.Visit(s.url.String(), events)
 	wg.Wait()
-	return nil
+	if unexpected != nil {
+		panic(unexpected)
+	}
+	return s.error
 }
 
 func (s *Site) listen(events <-chan event) {
@@ -140,7 +150,7 @@ func (s *Site) listen(events <-chan event) {
 		case ProblemEvent:
 			s.Problems = append(s.Problems, e)
 		default:
-			panic(errors.Errorf("unexpected event type %T", e))
+			panic(errors.Errorf("panic: unexpected event type %T", e))
 		}
 	}
 	barrier := make(map[*Page]map[*Link]struct{})
@@ -148,7 +158,7 @@ func (s *Site) listen(events <-chan event) {
 	for location, page := range pages {
 		link, found := links[location]
 		if !found {
-			panic(errors.Errorf("not consistent fetch result. link %q not found", location))
+			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", location))
 		}
 		page.Link, link.Page = link, page
 		s.Pages = append(s.Pages, page)
@@ -158,14 +168,14 @@ func (s *Site) listen(events <-chan event) {
 		linkLocation, pageLocation := linkAndPage[0], linkAndPage[1]
 		link, found := links[linkLocation]
 		if !found {
-			panic(errors.Errorf("not consistent fetch result. link %q not found", linkLocation))
+			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", linkLocation))
 		}
 		if _, found := pages[linkLocation]; found {
 			continue // exclude internal links
 		}
 		page, found := pages[pageLocation]
 		if !found {
-			panic(errors.Errorf("not consistent fetch result. page %q not found", pageLocation))
+			panic(errors.Errorf("panic: not consistent fetch result. page %q not found", pageLocation))
 		}
 		if _, exists := barrier[page][link]; !exists {
 			page.Links = append(page.Links, link)
