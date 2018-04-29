@@ -48,7 +48,7 @@ func TestCrawlerColly(t *testing.T) {
 		assert.Equal(t, 10, redirectEvents)
 		assert.Equal(t, 8, responseEvents)
 		assert.Equal(t, 39, walkEvents)
-		assert.Equal(t, 2, problemEvents)
+		assert.Equal(t, 1, problemEvents)
 		assert.Empty(t, unknownEvents)
 	}
 

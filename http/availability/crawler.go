@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
@@ -95,13 +96,16 @@ func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnHTML("a[href]", func(el *colly.HTMLElement) {
 			if isPage(el.Request.URL) {
-				href := el.Request.AbsoluteURL(el.Attr("href"))
+				attr := el.Attr("href")
+				if strings.HasPrefix(attr, "#") {
+					return
+				}
+				href := el.Request.AbsoluteURL(attr)
 				if href == "" {
-					//issue#30:on investigation:related to bad urls and anchors
-					bus <- ProblemEvent{Message: "empty location", Context: struct {
+					bus <- ProblemEvent{Message: "bad url", Context: struct {
 						Page string
 						Href string
-					}{el.Request.URL.String(), el.Attr("href")}}
+					}{el.Request.URL.String(), attr}}
 					return
 				}
 				bus <- WalkEvent{

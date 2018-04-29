@@ -74,8 +74,6 @@ func (p *Printer) Print() error {
 				colorize(link.StatusCode).Fprintf(w, body, link.StatusCode, link.FullLocation(sep))
 			}
 		}
-
-		//issue#30:on investigation
 		if len(site.Problems) > 0 {
 			critical().Fprintf(w, "found problems on the site %q\n", site.Name())
 			for i, problem := range site.Problems {

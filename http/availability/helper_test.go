@@ -127,7 +127,6 @@ var echoLinks = func(site1, site2 string) func(http.ResponseWriter, *http.Reques
 				{Href: template.URL(site2 + "/503"), Text: "site2 - 503"},
 				{Href: template.URL(site2 + "/300"), Text: "site2 - 300"},
 
-				//issue#34, fixes issue#30
 				{Href: "#anchor", Text: "anchor"},
 				{Href: "/#/tab", Text: "some tab"},
 				//issue#35, fixes issue#30
