@@ -18,13 +18,11 @@ $ check urls https://kamil.samigullin.info/
 #     ├─── [200] https://howilive.ru/en/
 #     ├─── [200] https://github.com/kamilsk
 #     ├─── [200] https://twitter.com/ikamilsk
-#     ├─── [200] https://kamil.samigullin.info/ru/
 #     └─── [999] https://www.linkedin.com/in/kamilsk
 # [200] https://kamil.samigullin.info/ru/
 #     ├─── [200] https://howilive.ru/
 #     ├─── [200] https://github.com/kamilsk
 #     ├─── [200] https://twitter.com/ikamilsk
-#     ├─── [200] https://kamil.samigullin.info/
 #     └─── [999] https://www.linkedin.com/in/kamilsk
 $ check urls https://www.octolab.org/ | grep '\[3[0-9][0-9]\]'
 #     ├─── [301] https://m.do.co/c/b2a387de5da4 -> https://www.digitalocean.com...

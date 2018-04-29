@@ -99,6 +99,8 @@ func (p *Printer) outOrStdout() io.Writer {
 func colorize(statusCode int) typewriter {
 	var tw typewriter
 	switch {
+	case statusCode == 0:
+		tw, _ = colors[danger]
 	case statusCode < 300:
 		tw, _ = colors[success]
 	case statusCode >= 300 && statusCode < 400:
@@ -112,7 +114,7 @@ func colorize(statusCode int) typewriter {
 	return tw
 }
 
-func critical() typewriter { return colorize(999) }
+func critical() typewriter { return colorize(0) }
 
 type typewriter interface {
 	Fprintf(io.Writer, string, ...interface{}) (int, error)
