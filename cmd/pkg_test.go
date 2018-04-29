@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"bytes"
-	"testing"
-
 	"fmt"
+	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -38,8 +37,18 @@ func TestURLs(t *testing.T) {
 	urlsCmd.SetOutput(buf)
 	defer closer()
 	defer urlsCmd.SetOutput(nil)
-	assert.NoError(t, urlsCmd.RunE(urlsCmd, []string{site.URL + "/"}))
-	assert.Contains(t, buf.String(), fmt.Sprintf("[200] %s/", site.URL))
+	{
+		buf.Reset()
+		assert.NoError(t, urlsCmd.RunE(urlsCmd, []string{site.URL + "/"}))
+		assert.Contains(t, buf.String(), fmt.Sprintf("[200] %s/", site.URL))
+	}
+	{
+		buf.Reset()
+		verbose := urlsCmd.Flag("verbose")
+		verbose.Value.Set("true")
+		assert.NoError(t, urlsCmd.RunE(urlsCmd, []string{site.URL + "/"}))
+		verbose.Value.Set(verbose.DefValue)
+	}
 }
 
 func Test_client(t *testing.T) {
