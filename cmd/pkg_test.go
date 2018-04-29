@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"fmt"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,4 +29,14 @@ func TestCompletion(t *testing.T) {
 		assert.NoError(t, completionCmd.RunE(completionCmd, []string{zshFormat}))
 		assert.Contains(t, buf.String(), "#compdef check")
 	}
+}
+
+func TestURLs(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	site, closer := site()
+	urlsCmd.SetOutput(buf)
+	defer closer()
+	defer urlsCmd.SetOutput(nil)
+	assert.NoError(t, urlsCmd.RunE(urlsCmd, []string{site.URL + "/"}))
+	assert.Contains(t, buf.String(), fmt.Sprintf("[200] %s/", site.URL))
 }
