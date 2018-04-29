@@ -19,16 +19,19 @@ func asBool(value fmt.Stringer) bool {
 	return is
 }
 
-func client() string {
-	var v *cobra.Command
-	for _, cmd := range RootCmd.Commands() {
+func client(cmd *cobra.Command) string {
+	var version *cobra.Command
+	if cmd.Parent() != nil {
+		cmd = cmd.Parent()
+	}
+	for _, cmd := range cmd.Commands() {
 		if cmd.Use == "version" {
-			v = cmd
+			version = cmd
 			break
 		}
 	}
-	if v != nil {
-		return fmt.Sprintf("%s/%s", RootCmd.Short, v.Version)
+	if version != nil {
+		return fmt.Sprintf("%s/%s", cmd.Use, version.Version)
 	}
-	return RootCmd.Short
+	return cmd.Use
 }

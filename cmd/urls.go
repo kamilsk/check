@@ -18,7 +18,7 @@ var urlsCmd = &cobra.Command{
 				availability.NewReport(
 					availability.CrawlerForSites(availability.CrawlerColly(
 						availability.CrawlerConfig{
-							UserAgent: client(),
+							UserAgent: client(cmd),
 							Verbose:   asBool(cmd.Flag("verbose").Value),
 							Output:    cmd.OutOrStderr(),
 						},
