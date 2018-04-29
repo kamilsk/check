@@ -108,6 +108,9 @@ func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 					}{el.Request.URL.String(), attr}}
 					return
 				}
+				if !strings.HasPrefix(href, "http") {
+					return
+				}
 				bus <- WalkEvent{
 					Page: el.Request.URL.String(),
 					Href: href,
