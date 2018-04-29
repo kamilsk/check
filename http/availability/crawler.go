@@ -14,6 +14,7 @@ import (
 
 const (
 	locationHeader = "Location"
+	clickOptHeader = "X-Click-Options"
 )
 
 type Crawler interface {
@@ -37,7 +38,7 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 		if err != nil {
 			return errors.WithMessage(err, fmt.Sprintf("parse entry point URL %q", entry))
 		}
-		options := make([]func(*colly.Collector), 0, 7)
+		options := make([]func(*colly.Collector), 0, 9)
 		if config.UserAgent != "" {
 			options = append(options, colly.UserAgent(config.UserAgent))
 		}
@@ -45,7 +46,9 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 		if config.Verbose {
 			options = append(options, colly.Debugger(&debug.LogDebugger{Output: config.Output}))
 		}
+		options = append(options, NoCookie())
 		options = append(options, NoRedirect())
+		options = append(options, OnRequest())
 		options = append(options, OnError(bus))
 		options = append(options, OnResponse(bus))
 		options = append(options, OnHTML(base, bus))
@@ -58,6 +61,20 @@ func NoRedirect() func(*colly.Collector) {
 		c.RedirectHandler = func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
+	}
+}
+
+func NoCookie() func(*colly.Collector) {
+	return func(c *colly.Collector) {
+		c.DisableCookies()
+	}
+}
+
+func OnRequest() func(*colly.Collector) {
+	return func(c *colly.Collector) {
+		c.OnRequest(func(req *colly.Request) {
+			req.Headers.Set(clickOptHeader, "anonymously")
+		})
 	}
 }
 
