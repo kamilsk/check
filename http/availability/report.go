@@ -1,7 +1,6 @@
 package availability
 
 import (
-	"fmt"
 	"net/url"
 	"sync"
 
@@ -79,7 +78,7 @@ func NewSite(rawURL string) *Site {
 	return &Site{
 		name:  hostOrRawURL(u, rawURL),
 		url:   u,
-		error: errors.WithMessage(err, fmt.Sprintf("parse rawURL %q for report", rawURL)),
+		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 	}
 }
 

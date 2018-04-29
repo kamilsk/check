@@ -7,6 +7,9 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+
+	"github.com/kamilsk/check/http/availability"
+	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -174,4 +177,13 @@ func (c *chain) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		c.Handler = http.NotFoundHandler()
 	}
 	c.Handler.ServeHTTP(rw, req)
+}
+
+type PrinterMock struct {
+	mock.Mock
+}
+
+func (m *PrinterMock) Sites() <-chan availability.Site {
+	args := m.Called()
+	return args.Get(0).(<-chan availability.Site)
 }

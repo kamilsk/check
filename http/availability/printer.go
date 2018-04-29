@@ -42,12 +42,16 @@ func OutputForPrinting(output io.Writer) func(*Printer) {
 	}
 }
 
-type Printer struct {
-	output io.Writer
-	report *Report
+type Reporter interface {
+	Sites() <-chan Site
 }
 
-func (p *Printer) For(report *Report) *Printer {
+type Printer struct {
+	output io.Writer
+	report Reporter
+}
+
+func (p *Printer) For(report Reporter) *Printer {
 	p.report = report
 	return p
 }
@@ -55,8 +59,7 @@ func (p *Printer) For(report *Report) *Printer {
 func (p *Printer) Print() error {
 	w := p.outOrStdout()
 	if p.report == nil {
-		critical().Fprintf(w, "nothing to print")
-		return nil
+		return errors.Simple("nothing to print")
 	}
 	for site := range p.report.Sites() {
 		if err := site.Error(); err != nil {
@@ -101,7 +104,7 @@ func colorize(statusCode int) typewriter {
 	switch {
 	case statusCode == 0:
 		tw, _ = colors[danger]
-	case statusCode < 300:
+	case statusCode >= 200 && statusCode < 300:
 		tw, _ = colors[success]
 	case statusCode >= 300 && statusCode < 400:
 		tw, _ = colors[warning]

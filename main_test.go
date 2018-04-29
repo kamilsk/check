@@ -23,8 +23,8 @@ func TestApplication_Run(t *testing.T) {
 		expected int
 	}{
 		{
-			name: "success run",
-			cmd: func() interface {
+			"success run",
+			func() interface {
 				AddCommand(...*cobra.Command)
 				Execute() error
 			} {
@@ -33,11 +33,11 @@ func TestApplication_Run(t *testing.T) {
 				cmd.On("Execute").Return(nil)
 				return cmd
 			},
-			expected: success,
+			success,
 		},
 		{
-			name: "failed run",
-			cmd: func() interface {
+			"failed run",
+			func() interface {
 				AddCommand(...*cobra.Command)
 				Execute() error
 			} {
@@ -46,7 +46,7 @@ func TestApplication_Run(t *testing.T) {
 				cmd.On("Execute").Return(fmt.Errorf("mocking"))
 				return cmd
 			},
-			expected: failed,
+			failed,
 		},
 	}
 	for _, test := range tests {
