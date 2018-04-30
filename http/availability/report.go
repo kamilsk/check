@@ -42,11 +42,11 @@ func (r *Report) Fill() *Report {
 		wg.Add(1)
 		go func(site *Site) {
 			var copied Site
-			copied.name = site.name
+			copied.Name = site.Name
 			defer wg.Done()
 			defer func() { r.ready <- copied }()
-			defer errors.Recover(&copied.error)
-			site.error = site.Fetch(r.crawler)
+			defer errors.Recover(&copied.Error)
+			site.Error = site.Fetch(r.crawler)
 			{
 				copied = *site
 				pages := make([]*Page, 0, len(site.Pages))
@@ -76,32 +76,28 @@ func (r *Report) Sites() <-chan Site {
 func NewSite(rawURL string) *Site {
 	u, err := url.Parse(rawURL)
 	return &Site{
-		name:  hostOrRawURL(u, rawURL),
 		url:   u,
-		error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
+		Name:  hostOrRawURL(u, rawURL),
+		Error: errors.Wrapf(err, "parse rawURL %q for report", rawURL),
 	}
 }
 
 type Site struct {
-	name  string
-	url   *url.URL
-	error error
+	url *url.URL
 
+	Name     string
+	Error    error
 	Pages    []*Page
 	Problems []ProblemEvent
 }
 
-func (s *Site) Name() string { return s.name }
-
-func (s *Site) Error() error { return s.error }
-
 func (s *Site) Fetch(crawler Crawler) error {
-	if s.error != nil {
-		return s.error
+	if s.Error != nil {
+		return s.Error
 	}
 	if crawler == nil {
-		s.error = errors.Simple("crawler is not provided")
-		return s.error
+		s.Error = errors.Simple("crawler is not provided")
+		return s.Error
 	}
 	var unexpected error
 	wg, events := &sync.WaitGroup{}, make(chan event, 512)
@@ -111,12 +107,12 @@ func (s *Site) Fetch(crawler Crawler) error {
 		defer errors.Recover(&unexpected)
 		s.listen(events)
 	}()
-	s.error = crawler.Visit(s.url.String(), events)
+	s.Error = crawler.Visit(s.url.String(), events)
 	wg.Wait()
 	if unexpected != nil {
 		panic(unexpected)
 	}
-	return s.error
+	return s.Error
 }
 
 func (s *Site) listen(events <-chan event) {

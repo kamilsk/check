@@ -1,10 +1,13 @@
 package availability_test
 
 import (
+	"net/http"
 	"testing"
 
+	"github.com/kamilsk/check/errors"
 	"github.com/kamilsk/check/http/availability"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestReporter(t *testing.T) {
@@ -24,6 +27,58 @@ func TestReporter(t *testing.T) {
 				return ch
 			},
 		},
+		{
+			"bad site",
+			[]string{":bad"},
+			func() *availability.Report { return availability.NewReport() },
+			func() <-chan availability.Site {
+				ch := make(chan availability.Site, 1)
+				ch <- *availability.NewSite(":bad")
+				close(ch)
+				return ch
+			},
+		},
+		{
+			"without crawler",
+			[]string{"http://test.dev/"},
+			func() *availability.Report { return availability.NewReport() },
+			func() <-chan availability.Site {
+				ch := make(chan availability.Site, 1)
+				site := *availability.NewSite("http://test.dev/")
+				site.Error = errors.Simple("crawler is not provided")
+				ch <- site
+				close(ch)
+				return ch
+			},
+		},
+		{
+			"normal case",
+			[]string{"http://test.dev/"},
+			func() *availability.Report {
+				crawler := &CrawlerMock{shift: func(to availability.EventBus) {
+					to <- availability.ResponseEvent{StatusCode: http.StatusOK, Location: "http://test.dev/"}
+					to <- availability.WalkEvent{Page: "http://test.dev/", Href: "http://accepted.dev/"}
+					to <- availability.WalkEvent{Page: "http://test.dev/", Href: "http://redirect.dev/"}
+					to <- availability.WalkEvent{Page: "http://test.dev/", Href: "http://noaccess.dev/"}
+					to <- availability.ProblemEvent{Message: "bad url", Context: ":bad"}
+					to <- availability.ResponseEvent{StatusCode: http.StatusAccepted, Location: "http://accepted.dev/"}
+					to <- availability.ErrorEvent{StatusCode: http.StatusFound,
+						Location: "http://redirect.dev/", Redirect: "https://redirect.dev/"}
+					to <- availability.ErrorEvent{StatusCode: http.StatusForbidden, Location: "http://noaccess.dev/"}
+					close(to)
+				}}
+				crawler.On("Visit", "http://test.dev/", mock.Anything).Return(nil)
+				report := availability.NewReport(availability.CrawlerForSites(crawler))
+				return report
+			},
+			func() <-chan availability.Site {
+				ch := make(chan availability.Site, 1)
+				ch <- *availability.NewSite("http://test.dev/")
+				close(ch)
+				return ch
+			},
+		},
+		// TODO check panics
 	}
 	for _, test := range tests {
 		tc := test
@@ -39,7 +94,15 @@ func TestReporter(t *testing.T) {
 			for site := range expectedPipe {
 				expected = append(expected, site)
 			}
-			assert.Equal(t, expected, obtained)
+			for i := range expected {
+				assert.Equal(t, expected[i].Name, obtained[i].Name)
+				if expected[i].Error != nil {
+					assert.EqualError(t, obtained[i].Error, expected[i].Error.Error())
+				} else {
+					assert.NoError(t, obtained[i].Error)
+				}
+				// TODO check site tree
+			}
 		})
 	}
 }

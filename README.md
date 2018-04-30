@@ -54,6 +54,13 @@ $ check completion zsh  > /path/to/zsh-completions/_check.zsh
 
 ## Notes
 
+- brief roadmap
+  - [ ] v1: MVP
+  - [ ] v2: check redirects
+  - [ ] v3: check repository
+  - [ ] v4: check package
+  - [ ] v5: distributed run
+  - [ ] integrate with Status, SaaS
 - tested on Go 1.8, 1.9 and 1.10
 
 ---

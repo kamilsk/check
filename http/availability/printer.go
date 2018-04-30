@@ -62,9 +62,9 @@ func (p *Printer) Print() error {
 		return errors.Simple("nothing to print")
 	}
 	for site := range p.report.Sites() {
-		if err := site.Error(); err != nil {
-			critical().Fprintf(w, "report %q has error %q\n", site.Name(), err)
-			if stack := errors.StackTrace(err); stack != nil {
+		if site.Error != nil {
+			critical().Fprintf(w, "report %q has error %q\n", site.Name, site.Error)
+			if stack := errors.StackTrace(site.Error); stack != nil {
 				critical().Fprintf(ioutil.Discard, "stack trace: %#+v\n", stack) // for future
 			}
 			continue
@@ -83,7 +83,7 @@ func (p *Printer) Print() error {
 			}
 		}
 		if len(site.Problems) > 0 {
-			critical().Fprintf(w, "found problems on the site %q\n", site.Name())
+			critical().Fprintf(w, "found problems on the site %q\n", site.Name)
 			for i, problem := range site.Problems {
 				critical().Fprintf(w, "- [%d] %s `%+v`\n", i, problem.Message, problem.Context)
 			}

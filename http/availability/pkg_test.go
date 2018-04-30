@@ -177,6 +177,16 @@ func (c *chain) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	c.Handler.ServeHTTP(rw, req)
 }
 
+type CrawlerMock struct {
+	mock.Mock
+	shift func(availability.EventBus)
+}
+
+func (m *CrawlerMock) Visit(url string, bus availability.EventBus) error {
+	go m.shift(bus)
+	return m.Called(url, bus).Error(0)
+}
+
 type PrinterMock struct {
 	mock.Mock
 }
@@ -184,13 +194,4 @@ type PrinterMock struct {
 func (m *PrinterMock) Sites() <-chan availability.Site {
 	args := m.Called()
 	return args.Get(0).(<-chan availability.Site)
-}
-
-type CrawlerMock struct {
-	mock.Mock
-}
-
-func (m *CrawlerMock) Visit(url string, bus availability.EventBus) error {
-	args := m.Called(url, bus)
-	return args.Error(0)
 }
