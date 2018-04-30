@@ -187,3 +187,12 @@ func (m *PrinterMock) Sites() <-chan availability.Site {
 	args := m.Called()
 	return args.Get(0).(<-chan availability.Site)
 }
+
+type CrawlerMock struct {
+	mock.Mock
+}
+
+func (m *CrawlerMock) Visit(url string, bus availability.EventBus) error {
+	args := m.Called(url, bus)
+	return args.Error(0)
+}

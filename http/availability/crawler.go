@@ -42,16 +42,18 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 		if config.UserAgent != "" {
 			options = append(options, colly.UserAgent(config.UserAgent))
 		}
-		options = append(options, colly.IgnoreRobotsTxt())
 		if config.Verbose {
 			options = append(options, colly.Debugger(&debug.LogDebugger{Output: config.Output}))
 		}
-		options = append(options, NoCookie())
-		options = append(options, NoRedirect())
-		options = append(options, OnRequest())
-		options = append(options, OnError(bus))
-		options = append(options, OnResponse(bus))
-		options = append(options, OnHTML(base, bus))
+		options = append(options,
+			colly.IgnoreRobotsTxt(),
+			NoCookie(),
+			NoRedirect(),
+			OnRequest(),
+			OnError(bus),
+			OnResponse(bus),
+			OnHTML(base, bus),
+		)
 		return colly.NewCollector(options...).Visit(entry)
 	})
 }
