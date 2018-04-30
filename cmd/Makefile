@@ -10,6 +10,10 @@ cmd-completion:
 	cd $(PKG_DIR) && go run $(GO_FILES) completion bash
 	cd $(PKG_DIR) && go run $(GO_FILES) completion zsh
 
+.PHONY: cmd-completion-help
+cmd-completion-help:
+	cd $(PKG_DIR) && go run $(GO_FILES) completion --help
+
 .PHONY: cmd-urls
 cmd-urls:
 	cd $(PKG_DIR) && go run -race $(GO_FILES) urls -v https://kamil.samigullin.info/

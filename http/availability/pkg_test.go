@@ -132,10 +132,8 @@ var echoLinks = func(site1, site2 string) func(http.ResponseWriter, *http.Reques
 
 				{Href: "#anchor", Text: "anchor"},
 				{Href: "/#/tab", Text: "some tab"},
-				//issue#35, fixes issue#30
 				{Href: "mailto:test@my.email", Text: "test@my.email"},
 				{Href: "tel:+01234567", Text: "+01234567"},
-				// other bad urls
 				{Href: ":bad", Text: "something bad"},
 			}
 			tpl.Execute(rw, links)

@@ -16,14 +16,14 @@ func TestPrinter(t *testing.T) {
 		name     string
 		printer  func() *availability.Printer
 		report   func() availability.Reporter
-		hasError bool
+		checker  func(assert.TestingT, error, ...interface{}) bool
 		expected string
 	}{
 		{
 			"empty report",
 			func() *availability.Printer { return availability.NewPrinter() },
 			func() availability.Reporter { return nil },
-			true,
+			assert.Error,
 			"",
 		},
 		{
@@ -38,7 +38,7 @@ func TestPrinter(t *testing.T) {
 				m.On("Sites").Return(pipe)
 				return m
 			},
-			false,
+			assert.NoError,
 			`report ":bad" has error`,
 		},
 		{
@@ -53,7 +53,7 @@ func TestPrinter(t *testing.T) {
 				m.On("Sites").Return(pipe)
 				return m
 			},
-			false,
+			assert.NoError,
 			"- [0] something happened `<nil>`",
 		},
 		{
@@ -89,7 +89,7 @@ func TestPrinter(t *testing.T) {
 				m.On("Sites").Return(pipe)
 				return m
 			},
-			false,
+			assert.NoError,
 			"[200] https://kamil.samigullin.info/",
 		},
 	}
@@ -97,11 +97,7 @@ func TestPrinter(t *testing.T) {
 		tc := test
 		t.Run(test.name, func(t *testing.T) {
 			buf.Reset()
-			var checker = assert.NoError
-			if tc.hasError {
-				checker = assert.Error
-			}
-			checker(t, tc.printer().For(tc.report()).Print())
+			tc.checker(t, tc.printer().For(tc.report()).Print())
 			assert.Contains(t, buf.String(), tc.expected)
 		})
 	}
