@@ -55,7 +55,7 @@ $ check completion zsh  > /path/to/zsh-completions/_check.zsh
 ## Notes
 
 - brief roadmap
-  - [ ] v1: MVP
+  - [x] v1: MVP
   - [ ] v2: check redirects
   - [ ] v3: check repository
   - [ ] v4: check package

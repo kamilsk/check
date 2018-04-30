@@ -78,7 +78,6 @@ func TestReporter(t *testing.T) {
 				return ch
 			},
 		},
-		// TODO check panics
 	}
 	for _, test := range tests {
 		tc := test
@@ -101,7 +100,6 @@ func TestReporter(t *testing.T) {
 				} else {
 					assert.NoError(t, obtained[i].Error)
 				}
-				// TODO check site tree
 			}
 		})
 	}
