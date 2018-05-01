@@ -7,6 +7,7 @@ import (
 	"github.com/kamilsk/check/errors"
 )
 
+// NewReport returns configured report builder.
 func NewReport(options ...func(*Report)) *Report {
 	r := &Report{}
 	for _, f := range options {
@@ -15,18 +16,21 @@ func NewReport(options ...func(*Report)) *Report {
 	return r
 }
 
+// CrawlerForSites sets the website crawler to a report builder.
 func CrawlerForSites(crawler Crawler) func(*Report) {
 	return func(r *Report) {
 		r.crawler = crawler
 	}
 }
 
+// Report represents a report builder.
 type Report struct {
 	crawler Crawler
 	sites   []*Site
 	ready   chan Site
 }
 
+// For prepares report builder for passed websites' URLs.
 func (r *Report) For(rawURLs []string) *Report {
 	r.sites = make([]*Site, 0, len(rawURLs))
 	r.ready = make(chan Site, len(rawURLs))
@@ -36,6 +40,7 @@ func (r *Report) For(rawURLs []string) *Report {
 	return r
 }
 
+// Fill ...
 func (r *Report) Fill() *Report {
 	wg := &sync.WaitGroup{}
 	for _, site := range r.sites {
@@ -69,10 +74,12 @@ func (r *Report) Fill() *Report {
 	return r
 }
 
+// Sites returns a channel what will be closed when the report is available.
 func (r *Report) Sites() <-chan Site {
 	return r.ready
 }
 
+// NewSite returns new instance of the website.
 func NewSite(rawURL string) *Site {
 	u, err := url.Parse(rawURL)
 	return &Site{
@@ -82,6 +89,7 @@ func NewSite(rawURL string) *Site {
 	}
 }
 
+// Site contains a meta information about a website.
 type Site struct {
 	url *url.URL
 
@@ -91,6 +99,7 @@ type Site struct {
 	Problems []ProblemEvent
 }
 
+// Fetch runs the website crawler and starts listen its events to build a website tree.
 func (s *Site) Fetch(crawler Crawler) error {
 	if s.Error != nil {
 		return s.Error
@@ -179,11 +188,13 @@ func (s *Site) listen(events <-chan event) {
 	}
 }
 
+// Page contains meta information about a website page.
 type Page struct {
 	*Link
 	Links []*Link
 }
 
+// Link contains meta information about a web link.
 type Link struct {
 	Page       *Page
 	StatusCode int
@@ -192,6 +203,7 @@ type Link struct {
 	Error      error
 }
 
+// FullLocation concatenates link location and redirect URL.
 func (l *Link) FullLocation(sep string) string {
 	if l.Redirect != "" {
 		return l.Location + sep + l.Redirect
@@ -210,13 +222,15 @@ type event interface {
 	family()
 }
 
-// NewReadableEventBus returns rw-channel of events.
+// NewReadableEventBus returns read/write-channel of events.
 func NewReadableEventBus(size int) chan event {
 	return make(chan event, size)
 }
 
+// EventBus is a write-only channel to communicate between a website crawler and a report builder.
 type EventBus chan<- event
 
+// ErrorEvent contains a response' status code, its URL and an encountered error.
 type ErrorEvent struct {
 	event
 
@@ -226,6 +240,7 @@ type ErrorEvent struct {
 	Error      error
 }
 
+// ResponseEvent contains a response' status code and its URL.
 type ResponseEvent struct {
 	event
 
@@ -233,6 +248,7 @@ type ResponseEvent struct {
 	Location   string
 }
 
+// WalkEvent contains information about a page and a link located on it.
 type WalkEvent struct {
 	event
 
@@ -240,6 +256,7 @@ type WalkEvent struct {
 	Href string
 }
 
+// ProblemEvent contains information about unexpected error.
 type ProblemEvent struct {
 	event
 
