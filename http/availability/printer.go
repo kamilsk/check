@@ -44,7 +44,7 @@ func OutputForPrinting(output io.Writer) func(*Printer) {
 	}
 }
 
-// Reporter defines behavior for report provider.
+// Reporter defines general behavior of report providers.
 type Reporter interface {
 	Sites() <-chan Site
 }

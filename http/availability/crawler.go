@@ -17,20 +17,28 @@ const (
 	clickOptHeader = "X-Click-Options"
 )
 
+// Crawler defines general behavior of website crawlers.
 type Crawler interface {
+	// Visit starts to crawl a website starting with the passed URL.
+	// All implementations must communicate with report builder
+	// through the passed EventBus and close it when they're done.
 	Visit(url string, bus EventBus) error
 }
 
+// CrawlerConfig holds a website crawler's configuration.
 type CrawlerConfig struct {
 	UserAgent string
 	Verbose   bool
 	Output    io.Writer
 }
 
+// CrawlerFunc adds possibility to use functions as a website crawler.
 type CrawlerFunc func(string, EventBus) error
 
+// Visit calls itself.
 func (fn CrawlerFunc) Visit(url string, bus EventBus) error { return fn(url, bus) }
 
+// CrawlerColly returns configured website crawler.
 func CrawlerColly(config CrawlerConfig) Crawler {
 	return CrawlerFunc(func(entry string, bus EventBus) error {
 		defer close(bus)
@@ -58,6 +66,7 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 	})
 }
 
+// NoRedirect disables redirects for `github.com/gocolly/colly.Collector`.
 func NoRedirect() func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.RedirectHandler = func(*http.Request, []*http.Request) error {
@@ -66,12 +75,14 @@ func NoRedirect() func(*colly.Collector) {
 	}
 }
 
+// NoCookie disables cookie for `github.com/gocolly/colly.Collector`.
 func NoCookie() func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.DisableCookies()
 	}
 }
 
+// OnRequest registers a callback by `github.com/gocolly/colly.Collector.OnRequest()`.
 func OnRequest() func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnRequest(func(req *colly.Request) {
@@ -80,6 +91,7 @@ func OnRequest() func(*colly.Collector) {
 	}
 }
 
+// OnError registers a callback by `github.com/gocolly/colly.Collector.OnError()`.
 func OnError(bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnError(func(resp *colly.Response, err error) {
@@ -97,6 +109,7 @@ func OnError(bus EventBus) func(*colly.Collector) {
 	}
 }
 
+// OnResponse registers a callback by `github.com/gocolly/colly.Collector.OnResponse()`.
 func OnResponse(bus EventBus) func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnResponse(func(resp *colly.Response) {
@@ -109,6 +122,7 @@ func OnResponse(bus EventBus) func(*colly.Collector) {
 	}
 }
 
+// OnHTML registers a callback by `github.com/gocolly/colly.Collector.OnHTML()`.
 func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 	isPage := func(current *url.URL) bool {
 		return current.Host == base.Host
