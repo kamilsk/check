@@ -17,4 +17,4 @@ code-quality-check: docker-tool-gometalinter
 
 .PHONY: code-quality-report
 code-quality-report:
-	time make code-quality-check | tail +7 | tee report.out | pbcopy
+	time make code-quality-check | tail +7 | tee report.out
