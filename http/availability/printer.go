@@ -28,6 +28,7 @@ var colors = map[string]*color.Color{
 	danger:  color.New(color.FgRed, color.Bold),
 }
 
+// NewPrinter returns configured printer instance.
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{}
 	for _, f := range options {
@@ -36,26 +37,32 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 	return p
 }
 
+// OutputForPrinting sets up printer output.
 func OutputForPrinting(output io.Writer) func(*Printer) {
 	return func(p *Printer) {
 		p.output = output
 	}
 }
 
+// Reporter defines behavior for report provider.
 type Reporter interface {
 	Sites() <-chan Site
 }
 
+// Printer represents a printer.
 type Printer struct {
 	output io.Writer
 	report Reporter
 }
 
+// For prepares printer for passed report provider.
 func (p *Printer) For(report Reporter) *Printer {
 	p.report = report
 	return p
 }
 
+// Print prints a report into the configured output.
+// Stdout is used as a fallback if the output is not set up.
 func (p *Printer) Print() error {
 	w := p.outOrStdout()
 	if p.report == nil {
