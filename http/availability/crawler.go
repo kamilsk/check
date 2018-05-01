@@ -86,7 +86,7 @@ func NoCookie() func(*colly.Collector) {
 func OnRequest() func(*colly.Collector) {
 	return func(c *colly.Collector) {
 		c.OnRequest(func(req *colly.Request) {
-			req.Headers.Set(clickOptHeader, "anonymously")
+			req.Headers.Set(clickOptHeader, "anonym")
 		})
 	}
 }
