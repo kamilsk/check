@@ -1,4 +1,4 @@
-> # check
+> # check [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Check%20Something%20as%20a%20Service&url=https://github.com/kamilsk/check&via=ikamilsk&hashtags=go,tool,website-audit)
 > [![Analytics](https://ga-beacon.appspot.com/UA-109817251-19/check/readme?pixel)](https://github.com/kamilsk/check)
 > Check Something as a Service.
 
@@ -11,6 +11,10 @@
 ## Usage
 
 ### Quick start
+
+#### check urls
+
+Fast website link checker.
 
 ```bash
 $ check urls https://kamil.samigullin.info/
@@ -28,13 +32,53 @@ $ check urls https://www.octolab.org/ | grep '\[3[0-9][0-9]\]'
 #     ├─── [301] https://m.do.co/c/b2a387de5da4 -> https://www.digitalocean.com...
 ```
 
+## Specification
+
+### CLI
+
+```bash
+$ check --help
+Usage:
+  check [command]
+
+Available Commands:
+  completion  Print Bash or Zsh completion
+  help        Help about any command
+  urls        Check all internal URLs on availability
+  version     Show application version
+
+Flags:
+  -h, --help   help for check
+
+Use "check [command] --help" for more information about a command.
+```
+
 ## Installation
+
+### Brew
+
+```bash
+$ brew install kamilsk/tap/check
+```
+
+### Binary
+
+```bash
+$ export VER=1.0.0      # all available versions are on https://github.com/kamilsk/check/releases
+$ export REQ_OS=Linux   # macOS and Windows are also available
+$ export REQ_ARCH=64bit # 32bit is also available
+$ wget -q -O check.tar.gz \
+       https://github.com/kamilsk/check/releases/download/"${VER}/check_${VER}_${REQ_OS}-${REQ_ARCH}".tar.gz
+$ tar xf check.tar.gz -C "${GOPATH}"/bin/ && rm check.tar.gz
+```
+
+### From source code
 
 ```bash
 $ egg github.com/kamilsk/check@^1.0.0 -- make test install
 ```
 
-### Mirror
+#### Mirror
 
 ```bash
 $ egg bitbucket.org/kamilsk/check@^1.0.0 -- make test install

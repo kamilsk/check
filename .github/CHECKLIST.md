@@ -16,7 +16,7 @@
   - [x] projects
   - [x] disable wiki
   - [x] short description with emoji
-  - [ ] topics
+  - [x] topics
 - [x] license
   - **MIT**
 - readme
@@ -33,8 +33,8 @@
     - [x] notes
   - [x] footer with feedback
 - integrations
-  - [ ] bitbucket
-  - [-] gitter
+  - [x] bitbucket
+  - [ ] gitter
   - [x] goreleaser
   - [x] scrutinizer
   - [x] slack
