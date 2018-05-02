@@ -17,6 +17,8 @@ const (
 	clickOptHeader = "X-Click-Options"
 )
 
+var clickOptions = []string{"anonym", "nolog"}
+
 // Crawler defines general behavior of website crawlers.
 type Crawler interface {
 	// Visit starts to crawl a website starting with the passed URL.
@@ -84,9 +86,10 @@ func NoCookie() func(*colly.Collector) {
 
 // OnRequest registers a callback by `github.com/gocolly/colly.Collector.OnRequest()`.
 func OnRequest() func(*colly.Collector) {
+	options := strings.Join(clickOptions, ";")
 	return func(c *colly.Collector) {
 		c.OnRequest(func(req *colly.Request) {
-			req.Headers.Set(clickOptHeader, "anonym; nolog")
+			req.Headers.Set(clickOptHeader, options)
 		})
 	}
 }
