@@ -77,8 +77,8 @@
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -164,13 +164,13 @@
     "html/atom",
     "html/charset"
   ]
-  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
+  revision = "640f4622ab692b87c2f3a94265e6f579fe38263d"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "cbbc999da32df943dac6cd71eb3ee39e1d7838b9"
+  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
 
 [[projects]]
   name = "golang.org/x/text"
