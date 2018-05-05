@@ -105,6 +105,7 @@ $ check completion zsh  > /path/to/zsh-completions/_check.zsh
   - [ ] v4: check package
   - [ ] v5: distributed run
   - [ ] integrate with Status, SaaS
+- [research](../../tree/research)
 - tested on Go 1.8, 1.9 and 1.10
 
 ---
