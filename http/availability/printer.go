@@ -14,12 +14,14 @@ import (
 )
 
 const (
+	shaded  = "shaded"
 	success = "success"
 	warning = "warning"
 	danger  = "danger"
 )
 
 var colors = map[string]*color.Color{
+	shaded:  color.New(color.FgHiBlack),
 	success: color.New(color.FgWhite),
 	warning: color.New(color.FgYellow),
 	danger:  color.New(color.FgRed, color.Bold),
@@ -85,7 +87,7 @@ func (p *Printer) Print() error {
 				buf.Reset()
 				entry.Execute(buf, page)
 			}
-			colorize(page.StatusCode).Fprintf(w, "%s\n", buf.String())
+			colorize(page.Link).Fprintf(w, "%s\n", buf.String())
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				{
@@ -93,10 +95,10 @@ func (p *Printer) Print() error {
 					entry.Execute(buf, link)
 				}
 				if i == last {
-					colorize(link.StatusCode).Fprintf(w, "    └───%s\n", buf.String())
+					colorize(&link).Fprintf(w, "    └───%s\n", buf.String())
 					continue
 				}
-				colorize(link.StatusCode).Fprintf(w, "    ├───%s\n", buf.String())
+				colorize(&link).Fprintf(w, "    ├───%s\n", buf.String())
 			}
 		}
 		if len(site.Problems) > 0 {
@@ -116,16 +118,20 @@ func (p *Printer) outOrStdout() io.Writer {
 	return os.Stdout
 }
 
-func colorize(statusCode int) typewriter {
+func colorize(link *Link) typewriter {
 	var tw typewriter
 	switch {
-	case statusCode == 0:
+	case link == nil:
 		tw, _ = colors[danger]
-	case statusCode >= 200 && statusCode < 300:
+	case link.StatusCode >= 200 && link.StatusCode < 300:
+		if link.Internal {
+			tw, _ = colors[shaded]
+			break
+		}
 		tw, _ = colors[success]
-	case statusCode >= 300 && statusCode < 400:
+	case link.StatusCode >= 300 && link.StatusCode < 400:
 		tw, _ = colors[warning]
-	case statusCode >= 400:
+	case link.StatusCode >= 400:
 		tw, _ = colors[danger]
 	}
 	if tw == nil {
@@ -134,7 +140,7 @@ func colorize(statusCode int) typewriter {
 	return tw
 }
 
-func critical() typewriter { return colorize(0) }
+func critical() typewriter { return colorize(nil) }
 
 type typewriter interface {
 	Fprintf(io.Writer, string, ...interface{}) (int, error)
@@ -154,7 +160,7 @@ func (l pagesByLocation) Less(i, j int) bool { return l[i].Location < l[j].Locat
 
 func (l pagesByLocation) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
-type linksByStatusCode []*Link
+type linksByStatusCode []Link
 
 func (l linksByStatusCode) Len() int { return len(l) }
 

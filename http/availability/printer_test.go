@@ -65,7 +65,7 @@ func TestPrinter(t *testing.T) {
 				data <- availability.Site{Pages: []*availability.Page{
 					{
 						&availability.Link{StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/en/"},
-						[]*availability.Link{
+						[]availability.Link{
 							{StatusCode: http.StatusServiceUnavailable, Location: "https://github.com/kamilsk"},
 							{StatusCode: http.StatusForbidden, Location: "https://www.linkedin.com/in/kamilsk"},
 							{StatusCode: http.StatusFound,
@@ -75,7 +75,7 @@ func TestPrinter(t *testing.T) {
 					},
 					{
 						Link: &availability.Link{StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/"},
-						Links: []*availability.Link{
+						Links: []availability.Link{
 							{StatusCode: http.StatusServiceUnavailable, Location: "https://github.com/kamilsk"},
 							{StatusCode: http.StatusForbidden, Location: "https://www.linkedin.com/in/kamilsk"},
 							{StatusCode: http.StatusFound,

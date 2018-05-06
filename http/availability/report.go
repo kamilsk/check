@@ -58,11 +58,8 @@ func (r *Report) Fill() *Report {
 				for _, page := range site.Pages {
 					page := *page
 					pages = append(pages, &page)
-					links := make([]*Link, 0, len(page.Links))
-					for _, link := range page.Links {
-						link := *link
-						links = append(links, &link)
-					}
+					links := make([]Link, len(page.Links))
+					copy(links, page.Links)
 					page.Links = links
 				}
 				copied.Pages = pages
@@ -148,7 +145,7 @@ func (s *Site) listen(events <-chan event) {
 			}
 		case WalkEvent:
 			if _, exists := pages[e.Page]; !exists {
-				pages[e.Page] = &Page{Links: make([]*Link, 0, 8)}
+				pages[e.Page] = &Page{Links: make([]Link, 0, 8)}
 			}
 			linkToPage = append(linkToPage, [2]string{e.Href, e.Page})
 		case ProblemEvent:
@@ -164,7 +161,7 @@ func (s *Site) listen(events <-chan event) {
 		if !found {
 			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", location))
 		}
-		page.Link, link.Page = link, page
+		page.Link = link
 		s.Pages = append(s.Pages, page)
 		barrier[page] = make(map[*Link]struct{})
 	}
@@ -179,8 +176,13 @@ func (s *Site) listen(events <-chan event) {
 			panic(errors.Errorf("panic: not consistent fetch result. page %q not found", pageLocation))
 		}
 		if _, exists := barrier[page][link]; !exists {
-			page.Links = append(page.Links, link)
 			barrier[page][link] = struct{}{}
+			{
+				link := *link
+				link.Page = page
+				link.Internal = hasSameHost(page.Link.Location, link.Location)
+				page.Links = append(page.Links, link)
+			}
 		}
 	}
 }
@@ -188,24 +190,17 @@ func (s *Site) listen(events <-chan event) {
 // Page contains meta information about a website page.
 type Page struct {
 	*Link
-	Links []*Link
+	Links []Link
 }
 
 // Link contains meta information about a web link.
 type Link struct {
 	Page       *Page
+	Internal   bool
 	StatusCode int
 	Location   string
 	Redirect   string
 	Error      error
-}
-
-// FullLocation concatenates link location and redirect URL.
-func (l *Link) FullLocation(sep string) string {
-	if l.Redirect != "" {
-		return l.Location + sep + l.Redirect
-	}
-	return l.Location
 }
 
 func hostOrRawURL(u *url.URL, raw string) string {
@@ -213,6 +208,18 @@ func hostOrRawURL(u *url.URL, raw string) string {
 		return raw
 	}
 	return u.Host
+}
+
+func hasSameHost(link1, link2 string) bool {
+	u1, err := url.Parse(link1)
+	if err != nil {
+		return false
+	}
+	u2, err := url.Parse(link2)
+	if err != nil {
+		return false
+	}
+	return u1.Host == u2.Host
 }
 
 type event interface {
