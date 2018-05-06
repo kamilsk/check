@@ -40,7 +40,7 @@ func (r *Report) For(rawURLs []string) *Report {
 	return r
 }
 
-// Fill ...
+// Fill starts to fetch sites and prepared them for reading.
 func (r *Report) Fill() *Report {
 	wg := &sync.WaitGroup{}
 	for _, site := range r.sites {
@@ -173,9 +173,6 @@ func (s *Site) listen(events <-chan event) {
 		link, found := links[linkLocation]
 		if !found {
 			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", linkLocation))
-		}
-		if _, found := pages[linkLocation]; found {
-			continue // exclude internal links
 		}
 		page, found := pages[pageLocation]
 		if !found {
