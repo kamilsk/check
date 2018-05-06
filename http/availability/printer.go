@@ -1,11 +1,13 @@
 package availability
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"sort"
+	"text/template"
 
 	"github.com/fatih/color"
 	"github.com/kamilsk/check/errors"
@@ -15,11 +17,6 @@ const (
 	success = "success"
 	warning = "warning"
 	danger  = "danger"
-
-	head = "[%d] %s\n"
-	body = "    ├─── [%d] %s\n"
-	foot = "    └─── [%d] %s\n"
-	sep  = " -> "
 )
 
 var colors = map[string]*color.Color{
@@ -27,6 +24,10 @@ var colors = map[string]*color.Color{
 	warning: color.New(color.FgYellow),
 	danger:  color.New(color.FgRed, color.Bold),
 }
+
+var entry = template.Must(template.New("entry").Parse(
+	"[{{ .StatusCode }}] {{ .Location }}{{ with .Error }} -> ({{ . }}){{ end }}{{ with .Redirect }} -> {{ . }}{{ end }}",
+))
 
 // NewPrinter returns configured printer instance.
 func NewPrinter(options ...func(*Printer)) *Printer {
@@ -64,7 +65,8 @@ func (p *Printer) For(report Reporter) *Printer {
 // Print prints a report into the configured output.
 // Stdout is used as a fallback if the output is not set up.
 func (p *Printer) Print() error {
-	w := p.outOrStdout()
+	var blob = [1024]byte{}
+	w, buf := p.outOrStdout(), bytes.NewBuffer(blob[:0])
 	if p.report == nil {
 		return errors.Simple("nothing to print")
 	}
@@ -79,14 +81,22 @@ func (p *Printer) Print() error {
 		sort.Sort(pagesByLocation(site.Pages))
 		for _, page := range site.Pages {
 			last := len(page.Links) - 1
-			colorize(page.StatusCode).Fprintf(w, head, page.StatusCode, page.Location)
+			{
+				buf.Reset()
+				entry.Execute(buf, page)
+			}
+			colorize(page.StatusCode).Fprintf(w, "%s\n", buf.String())
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
+				{
+					buf.Reset()
+					entry.Execute(buf, link)
+				}
 				if i == last {
-					colorize(link.StatusCode).Fprintf(w, foot, link.StatusCode, link.FullLocation(sep))
+					colorize(link.StatusCode).Fprintf(w, "    └───%s\n", buf.String())
 					continue
 				}
-				colorize(link.StatusCode).Fprintf(w, body, link.StatusCode, link.FullLocation(sep))
+				colorize(link.StatusCode).Fprintf(w, "    ├───%s\n", buf.String())
 			}
 		}
 		if len(site.Problems) > 0 {
