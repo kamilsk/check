@@ -58,10 +58,7 @@ func DecodeOutput(enabled bool) func(*Printer) {
 	return func(p *Printer) {
 		if enabled {
 			p.decoder = func(origin string) string {
-				decoded, err := url.PathUnescape(origin)
-				if err != nil {
-					return origin
-				}
+				decoded, _ := url.PathUnescape(origin)
 				return decoded
 			}
 		}

@@ -33,7 +33,6 @@ type Report struct {
 // For prepares report builder for passed websites' URLs.
 func (r *Report) For(rawURLs []string) *Report {
 	r.sites = make([]*Site, 0, len(rawURLs))
-	r.ready = make(chan Site, len(rawURLs))
 	for _, rawURL := range rawURLs {
 		r.sites = append(r.sites, NewSite(rawURL))
 	}
@@ -42,31 +41,23 @@ func (r *Report) For(rawURLs []string) *Report {
 
 // Fill starts to fetch sites and prepared them for reading.
 func (r *Report) Fill() *Report {
-	wg := &sync.WaitGroup{}
+	r.ready = make(chan Site, len(r.sites))
 	for _, site := range r.sites {
-		wg.Add(1)
-		go func(site *Site) {
-			var copied Site
-			copied.Name = site.Name
-			defer wg.Done()
-			defer func() { r.ready <- copied }()
-			defer errors.Recover(&copied.Error)
-			site.Error = site.Fetch(r.crawler)
-			{
-				copied = *site
-				pages := make([]*Page, 0, len(site.Pages))
-				for _, page := range site.Pages {
-					page := *page
-					pages = append(pages, &page)
-					links := make([]Link, len(page.Links))
-					copy(links, page.Links)
-					page.Links = links
-				}
-				copied.Pages = pages
+		site.Error = site.Fetch(r.crawler)
+		{
+			copied := *site
+			pages := make([]*Page, 0, len(site.Pages))
+			for _, page := range site.Pages {
+				page := *page
+				pages = append(pages, &page)
+				links := make([]Link, len(page.Links))
+				copy(links, page.Links)
+				page.Links = links
 			}
-		}(site)
+			copied.Pages = pages
+			r.ready <- copied
+		}
 	}
-	wg.Wait()
 	close(r.ready)
 	return r
 }
@@ -157,24 +148,14 @@ func (s *Site) listen(events <-chan event) {
 	barrier := make(map[*Page]map[*Link]struct{})
 	s.Pages = make([]*Page, 0, len(pages))
 	for location, page := range pages {
-		link, found := links[location]
-		if !found {
-			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", location))
-		}
-		page.Link = link
+		page.Link = links[location]
 		s.Pages = append(s.Pages, page)
 		barrier[page] = make(map[*Link]struct{})
 	}
 	for _, linkAndPage := range linkToPage {
 		linkLocation, pageLocation := linkAndPage[0], linkAndPage[1]
-		link, found := links[linkLocation]
-		if !found {
-			panic(errors.Errorf("panic: not consistent fetch result. link %q not found", linkLocation))
-		}
-		page, found := pages[pageLocation]
-		if !found {
-			panic(errors.Errorf("panic: not consistent fetch result. page %q not found", pageLocation))
-		}
+		link := links[linkLocation]
+		page := pages[pageLocation]
 		if _, exists := barrier[page][link]; !exists {
 			barrier[page][link] = struct{}{}
 			{
@@ -211,15 +192,9 @@ func hostOrRawURL(u *url.URL, raw string) string {
 }
 
 func hasSameHost(link1, link2 string) bool {
-	u1, err := url.Parse(link1)
-	if err != nil {
-		return false
-	}
-	u2, err := url.Parse(link2)
-	if err != nil {
-		return false
-	}
-	return u1.Host == u2.Host
+	u1, _ := url.Parse(link1)
+	u2, _ := url.Parse(link2)
+	return u1 != nil && u2 != nil && u1.Host == u2.Host
 }
 
 type event interface {

@@ -104,3 +104,59 @@ func TestReporter(t *testing.T) {
 		})
 	}
 }
+
+func TestReporter_handlePanic(t *testing.T) {
+	tests := []struct {
+		name     string
+		rawURLs  []string
+		reporter func() *availability.Report
+		expected string
+	}{
+		{
+			"unexpected event",
+			[]string{"http://test.dev/"},
+			func() *availability.Report {
+				crawler := &CrawlerMock{shift: func(to availability.EventBus) {
+					type unknown struct{ availability.ProblemEvent }
+					to <- unknown{availability.ProblemEvent{Message: "bad url", Context: ":bad"}}
+					close(to)
+				}}
+				crawler.On("Visit", "http://test.dev/", mock.Anything).Return(nil)
+				report := availability.NewReport(availability.CrawlerForSites(crawler))
+				return report
+			},
+			"panic: unexpected event type availability_test.unknown",
+		},
+		{
+			"not consistent fetch result",
+			[]string{"http://test.dev/"},
+			func() *availability.Report {
+				crawler := &CrawlerMock{shift: func(to availability.EventBus) {
+					to <- availability.ResponseEvent{StatusCode: http.StatusOK, Location: "http://test.dev/"}
+					to <- availability.WalkEvent{Page: "http://test.dev/without-response/", Href: "http://test.dev/"}
+					close(to)
+				}}
+				crawler.On("Visit", "http://test.dev/", mock.Anything).Return(nil)
+				report := availability.NewReport(availability.CrawlerForSites(crawler))
+				return report
+			},
+			"runtime error: invalid memory address or nil pointer dereference",
+		},
+	}
+	for _, test := range tests {
+		tc := test
+		t.Run(test.name, func(t *testing.T) {
+			assert.Panics(t, func() {
+				defer func() {
+					if r := recover(); r != nil {
+						err, is := r.(error)
+						assert.True(t, is)
+						assert.EqualError(t, err, tc.expected)
+						panic(r)
+					}
+				}()
+				tc.reporter().For(tc.rawURLs).Fill()
+			})
+		})
+	}
+}

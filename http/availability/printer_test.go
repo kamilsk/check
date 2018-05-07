@@ -71,6 +71,7 @@ func TestPrinter(t *testing.T) {
 							{StatusCode: http.StatusFound,
 								Location: "http://howilive.ru/en/", Redirect: "https://howilive.ru/en/"},
 							{StatusCode: http.StatusProcessing, Location: "https://twitter.com/ikamilsk"},
+							{Internal: true, StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/"},
 						},
 					},
 					{
@@ -81,6 +82,53 @@ func TestPrinter(t *testing.T) {
 							{StatusCode: http.StatusFound,
 								Location: "http://howilive.ru/en/", Redirect: "https://howilive.ru/en/"},
 							{StatusCode: http.StatusProcessing, Location: "https://twitter.com/ikamilsk"},
+							{Internal: true, StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/en/"},
+						},
+					},
+				}}
+				close(data)
+				var pipe <-chan availability.Site = data
+				m.On("Sites").Return(pipe)
+				return m
+			},
+			assert.NoError,
+			"[200] https://kamil.samigullin.info/",
+		},
+		{
+			"extra configured",
+			func() *availability.Printer {
+				return availability.NewPrinter(
+					availability.ColorizeOutput(true),
+					availability.DecodeOutput(true),
+					availability.HideError(true),
+					availability.HideRedirect(true),
+					availability.OutputForPrinting(buf),
+				)
+			},
+			func() availability.Reporter {
+				m := &PrinterMock{}
+				data := make(chan availability.Site, 1)
+				data <- availability.Site{Pages: []*availability.Page{
+					{
+						&availability.Link{StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/en/"},
+						[]availability.Link{
+							{StatusCode: http.StatusServiceUnavailable, Location: "https://github.com/kamilsk"},
+							{StatusCode: http.StatusForbidden, Location: "https://www.linkedin.com/in/kamilsk"},
+							{StatusCode: http.StatusFound,
+								Location: "http://howilive.ru/en/", Redirect: "https://howilive.ru/en/"},
+							{StatusCode: http.StatusProcessing, Location: "https://twitter.com/ikamilsk"},
+							{Internal: true, StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/"},
+						},
+					},
+					{
+						Link: &availability.Link{StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/"},
+						Links: []availability.Link{
+							{StatusCode: http.StatusServiceUnavailable, Location: "https://github.com/kamilsk"},
+							{StatusCode: http.StatusForbidden, Location: "https://www.linkedin.com/in/kamilsk"},
+							{StatusCode: http.StatusFound,
+								Location: "http://howilive.ru/en/", Redirect: "https://howilive.ru/en/"},
+							{StatusCode: http.StatusProcessing, Location: "https://twitter.com/ikamilsk"},
+							{Internal: true, StatusCode: http.StatusOK, Location: "https://kamil.samigullin.info/en/"},
 						},
 					},
 				}}
