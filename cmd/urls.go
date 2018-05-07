@@ -37,12 +37,22 @@ var urlsCmd = &cobra.Command{
 			Fill()
 		stop()
 		return availability.
-			NewPrinter(availability.OutputForPrinting(cmd.OutOrStdout())).
+			NewPrinter(
+				availability.ColorizeOutput(!asBool(cmd.Flag("no-color").Value)),
+				availability.DecodeOutput(asBool(cmd.Flag("decode").Value)),
+				availability.HideError(asBool(cmd.Flag("no-error").Value)),
+				availability.HideRedirect(asBool(cmd.Flag("no-redirect").Value)),
+				availability.OutputForPrinting(cmd.OutOrStdout()),
+			).
 			For(report).
 			Print()
 	},
 }
 
 func init() {
+	urlsCmd.Flags().BoolP("decode", "d", false, "decode URLs")
+	urlsCmd.Flags().Bool("no-color", false, "disable colorized output")
+	urlsCmd.Flags().Bool("no-error", false, "do not show URL's error")
+	urlsCmd.Flags().Bool("no-redirect", false, "do not show URL's redirect")
 	urlsCmd.Flags().BoolP("verbose", "v", false, "turn on verbose mode")
 }

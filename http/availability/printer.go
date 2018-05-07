@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"sort"
 	"text/template"
@@ -20,24 +21,69 @@ const (
 	danger  = "danger"
 )
 
-var colors = map[string]*color.Color{
-	shaded:  color.New(color.FgHiBlack),
-	success: color.New(color.FgWhite),
-	warning: color.New(color.FgYellow),
-	danger:  color.New(color.FgRed, color.Bold),
-}
-
-var entry = template.Must(template.New("entry").Parse(
-	"[{{ .StatusCode }}] {{ .Location }}{{ with .Error }} -> ({{ . }}){{ end }}{{ with .Redirect }} -> {{ . }}{{ end }}",
-))
+var base = template.Must(template.New("entry").Parse(`
+{{- define "error" }}{{ with .Error }} -> ({{ . }}){{ end }}{{ end -}}
+{{- define "redirect" }}{{ with .Redirect }} -> {{ . }}{{ end }}{{ end -}}
+[{{ .StatusCode }}] {{ .Location }}{{ template "error" . }}{{ template "redirect" . -}}
+`))
 
 // NewPrinter returns configured printer instance.
 func NewPrinter(options ...func(*Printer)) *Printer {
-	p := &Printer{}
+	p := &Printer{
+		tpl:     template.Must(base.Clone()),
+		decoder: func(origin string) string { return origin },
+	}
 	for _, f := range options {
 		f(p)
 	}
 	return p
+}
+
+// ColorizeOutput sets the ink for the printer.
+func ColorizeOutput(enabled bool) func(*Printer) {
+	return func(p *Printer) {
+		if enabled {
+			p.ink = map[string]*color.Color{
+				shaded:  color.New(color.FgHiBlack),
+				success: color.New(color.FgWhite),
+				warning: color.New(color.FgYellow),
+				danger:  color.New(color.FgRed, color.Bold),
+			}
+		}
+	}
+}
+
+// DecodeOutput sets `net/url.PathUnescape` as a decoder.
+func DecodeOutput(enabled bool) func(*Printer) {
+	return func(p *Printer) {
+		if enabled {
+			p.decoder = func(origin string) string {
+				decoded, err := url.PathUnescape(origin)
+				if err != nil {
+					return origin
+				}
+				return decoded
+			}
+		}
+	}
+}
+
+// HideError prevents URL's error output.
+func HideError(disabled bool) func(*Printer) {
+	return func(p *Printer) {
+		if disabled {
+			p.tpl.New("error").Parse("{{ with .Error }}{{/* ignore */}}{{ end }}")
+		}
+	}
+}
+
+// HideRedirect prevents URL's redirect output.
+func HideRedirect(disabled bool) func(*Printer) {
+	return func(p *Printer) {
+		if disabled {
+			p.tpl.New("redirect").Parse("{{ with .Redirect }}{{/* ignore */}}{{ end }}")
+		}
+	}
 }
 
 // OutputForPrinting sets up printer output.
@@ -54,8 +100,11 @@ type Reporter interface {
 
 // Printer represents a printer.
 type Printer struct {
-	output io.Writer
-	report Reporter
+	tpl     *template.Template
+	output  io.Writer
+	ink     map[string]*color.Color
+	decoder func(string) string
+	report  Reporter
 }
 
 // For prepares printer for passed report provider.
@@ -74,9 +123,9 @@ func (p *Printer) Print() error {
 	}
 	for site := range p.report.Sites() {
 		if site.Error != nil {
-			critical().Fprintf(w, "report %q has error %q\n", site.Name, site.Error)
+			p.critical().Fprintf(w, "report %q has error %q\n", site.Name, site.Error)
 			if stack := errors.StackTrace(site.Error); stack != nil {
-				critical().Fprintf(ioutil.Discard, "stack trace: %#+v\n", stack) // for future
+				p.critical().Fprintf(ioutil.Discard, "stack trace: %#+v\n", stack) // for future
 			}
 			continue
 		}
@@ -85,30 +134,34 @@ func (p *Printer) Print() error {
 			last := len(page.Links) - 1
 			{
 				buf.Reset()
-				entry.Execute(buf, page)
+				p.tpl.Execute(buf, page)
 			}
-			colorize(page.Link).Fprintf(w, "%s\n", buf.String())
+			p.typewriter(page.Link).Fprintf(w, "%s\n", p.decoder(buf.String()))
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
 				{
 					buf.Reset()
-					entry.Execute(buf, link)
+					p.tpl.Execute(buf, link)
 				}
 				if i == last {
-					colorize(&link).Fprintf(w, "    └───%s\n", buf.String())
+					p.typewriter(&link).Fprintf(w, "    └───%s\n", p.decoder(buf.String()))
 					continue
 				}
-				colorize(&link).Fprintf(w, "    ├───%s\n", buf.String())
+				p.typewriter(&link).Fprintf(w, "    ├───%s\n", p.decoder(buf.String()))
 			}
 		}
 		if len(site.Problems) > 0 {
-			critical().Fprintf(w, "found problems on the site %q\n", site.Name)
+			p.critical().Fprintf(w, "found problems on the site %q\n", site.Name)
 			for i, problem := range site.Problems {
-				critical().Fprintf(w, "- [%d] %s `%+v`\n", i, problem.Message, problem.Context)
+				p.critical().Fprintf(w, "- [%d] %s `%+v`\n", i, problem.Message, problem.Context)
 			}
 		}
 	}
 	return nil
+}
+
+func (p *Printer) critical() typewriter {
+	return p.typewriter(nil)
 }
 
 func (p *Printer) outOrStdout() io.Writer {
@@ -118,29 +171,30 @@ func (p *Printer) outOrStdout() io.Writer {
 	return os.Stdout
 }
 
-func colorize(link *Link) typewriter {
-	var tw typewriter
+func (p *Printer) typewriter(link *Link) typewriter {
+	var (
+		tw typewriter
+		ok bool
+	)
 	switch {
 	case link == nil:
-		tw, _ = colors[danger]
+		tw, ok = p.ink[danger]
 	case link.StatusCode >= 200 && link.StatusCode < 300:
 		if link.Internal {
-			tw, _ = colors[shaded]
+			tw, ok = p.ink[shaded]
 			break
 		}
-		tw, _ = colors[success]
+		tw, ok = p.ink[success]
 	case link.StatusCode >= 300 && link.StatusCode < 400:
-		tw, _ = colors[warning]
+		tw, ok = p.ink[warning]
 	case link.StatusCode >= 400:
-		tw, _ = colors[danger]
+		tw, ok = p.ink[danger]
 	}
-	if tw == nil {
+	if !ok || tw == nil {
 		tw = typewriterFunc(fmt.Fprintf)
 	}
 	return tw
 }
-
-func critical() typewriter { return colorize(nil) }
 
 type typewriter interface {
 	Fprintf(io.Writer, string, ...interface{}) (int, error)
