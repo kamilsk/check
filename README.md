@@ -35,7 +35,6 @@ $ check urls https://kamil.samigullin.info/
 $ check urls https://www.octolab.org/ | grep '\[3[0-9][0-9]\]'
 #     ├───[301] https://m.do.co/c/b2a387de5da4 -> (Moved Permanently) -> https://...
 #     ├───...
-$
 ```
 
 ## Specification
