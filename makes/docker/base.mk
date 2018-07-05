@@ -61,7 +61,7 @@ docker-test-with-coverage-$(1):
 	           golang:$(1) \
 	           /bin/sh -c '$$(PACKAGES) | xargs go get -d -t; \
 	                       echo "mode: $${GO_TEST_COVERAGE_MODE}" > '$$@.out'; \
-	                       for package in $$$$($$(PACKAGES)); do \
+	                       set -e; for package in $$$$($$(PACKAGES)); do \
 	                           go test -covermode '$${GO_TEST_COVERAGE_MODE}' \
 	                                   -coverprofile "coverage_$$$${package##*/}.out" \
 	                                   $$(strip $$(ARGS)) "$$$${package}"; \

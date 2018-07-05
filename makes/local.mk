@@ -76,7 +76,7 @@ test-with-coverage-profile:   #| Runs tests with coverage and collects the resul
                               #| Accepts: ARGS, OPEN_BROWSER.
                               #| Uses: GO_TEST_COVERAGE_MODE, GO_TEST_COVERAGE_FILENAME, PACKAGES.
 	echo 'mode: ${GO_TEST_COVERAGE_MODE}' > '${GO_TEST_COVERAGE_FILENAME}'
-	for package in $$($(PACKAGES)); do \
+	set -e; for package in $$($(PACKAGES)); do \
 	    go test -covermode '${GO_TEST_COVERAGE_MODE}' \
 	            -coverprofile "coverage_$${package##*/}.out" \
 	            $(strip $(ARGS)) "$${package}"; \
@@ -93,7 +93,7 @@ test-example:                 #| Runs example tests with coverage and collects t
                               #| Accepts: ARGS, OPEN_BROWSER.
                               #| Uses: GO_TEST_COVERAGE_MODE, GO_TEST_COVERAGE_FILENAME, PACKAGES.
 	echo 'mode: ${GO_TEST_COVERAGE_MODE}' > '${GO_TEST_COVERAGE_FILENAME}'
-	for package in $$($(PACKAGES)); do \
+	set -e; for package in $$($(PACKAGES)); do \
 	    go test -v -run=Example \
 	            -covermode '${GO_TEST_COVERAGE_MODE}' \
 	            -coverprofile "coverage_example_$${package##*/}.out" \
