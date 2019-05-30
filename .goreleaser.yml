@@ -1,4 +1,5 @@
-archive:
+archives:
+- id: binary
   files:
   - LICENSE
   format: tar.gz
@@ -7,24 +8,24 @@ archive:
     format: zip
   name_template: "{{.Binary}}_{{.Version}}_{{.Os}}-{{.Arch}}"
   replacements:
-    386:    32bit
-    amd64:  64bit
-
+    386:     32bit
+    amd64:   64bit
     darwin:  macOS
     linux:   Linux
     windows: Windows
 
 brew:
+  name: check
   caveats: Use `check --help` to see detailed help message
+  description: CLI tool to check something.
+  homepage: https://github.com/kamilsk/check
   commit_author:
     name:  Kamil Samigullin
     email: kamil@samigullin.info
-  description: Check Something as a Service.
   folder: Formula
   github:
     name:  homebrew-tap
     owner: kamilsk
-  homepage: https://github.com/kamilsk/check
 
 build:
   binary: check
