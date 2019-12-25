@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/kamilsk/check/http/availability"
 	"github.com/spf13/cobra"
+
+	"github.com/kamilsk/check/http/availability"
 )
 
 var urlsCmd = &cobra.Command{

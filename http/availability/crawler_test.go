@@ -5,8 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kamilsk/check/http/availability"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kamilsk/check/http/availability"
 )
 
 func TestCrawlerColly(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
+
 	"github.com/kamilsk/check/errors"
 )
 

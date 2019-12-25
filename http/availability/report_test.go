@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/kamilsk/check/errors"
-	"github.com/kamilsk/check/http/availability"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/kamilsk/check/errors"
+	"github.com/kamilsk/check/http/availability"
 )
 
 func TestReporter(t *testing.T) {

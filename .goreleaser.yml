@@ -3,21 +3,16 @@ archives:
   files:
   - LICENSE
   format: tar.gz
-  format_overrides:
-  - goos:   windows
-    format: zip
   name_template: "{{.Binary}}_{{.Version}}_{{.Os}}-{{.Arch}}"
   replacements:
-    386:     32bit
-    amd64:   64bit
-    darwin:  macOS
-    linux:   Linux
-    windows: Windows
+    386:    32bit
+    amd64:  64bit
+    darwin: macOS
+    linux:  Linux
 
-brew:
-  name: check
-  caveats: Use `check --help` to see detailed help message
-  description: CLI tool to check something.
+brews:
+- name: check
+  description: Tool to check something.
   homepage: https://github.com/kamilsk/check
   commit_author:
     name:  Kamil Samigullin
@@ -27,8 +22,8 @@ brew:
     name:  homebrew-tap
     owner: kamilsk
 
-build:
-  binary: check
+builds:
+- binary: check
   env:
   - CGO_ENABLED=0
   goarch:
@@ -37,7 +32,6 @@ build:
   goos:
   - darwin
   - linux
-  - windows
   ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   main: .
 

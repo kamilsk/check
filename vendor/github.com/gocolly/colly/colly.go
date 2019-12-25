@@ -17,6 +17,7 @@ package colly
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -37,8 +38,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/html"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/urlfetch"
 
 	"github.com/PuerkitoBio/goquery"
@@ -103,7 +102,9 @@ type Collector struct {
 	// without explicit charset declaration. This feature uses https://github.com/saintfish/chardet
 	DetectCharset bool
 	// RedirectHandler allows control on how a redirect will be managed
-	RedirectHandler   func(req *http.Request, via []*http.Request) error
+	RedirectHandler func(req *http.Request, via []*http.Request) error
+	// CheckHead performs a HEAD request before every GET to pre-validate the response
+	CheckHead         bool
 	store             storage.Storage
 	debugger          debug.Debugger
 	robotsMap         map[string]*robotstxt.RobotsData
@@ -157,6 +158,13 @@ type cookieJarSerializer struct {
 }
 
 var collectorCounter uint32
+
+// The key type is unexported to prevent collisions with context keys defined in
+// other packages.
+type key int
+
+// ProxyURLKey is the context key for the request proxy address.
+const ProxyURLKey key = iota
 
 var (
 	// ErrForbiddenDomain is the error thrown if visiting
@@ -374,10 +382,16 @@ func (c *Collector) Init() {
 
 // Appengine will replace the Collector's backend http.Client
 // With an Http.Client that is provided by appengine/urlfetch
-// This function should be used when the scraper is initiated
-// by a http.Request to Google App Engine
-func (c *Collector) Appengine(req *http.Request) {
-	ctx := appengine.NewContext(req)
+// This function should be used when the scraper is run on
+// Google App Engine. Example:
+//   func startScraper(w http.ResponseWriter, r *http.Request) {
+//     ctx := appengine.NewContext(r)
+//     c := colly.NewCollector()
+//     c.Appengine(ctx)
+//      ...
+//     c.Visit("https://google.ca")
+//   }
+func (c *Collector) Appengine(ctx context.Context) {
 	client := urlfetch.Client(ctx)
 	client.Jar = c.backend.Client.Jar
 	client.CheckRedirect = c.backend.Client.CheckRedirect
@@ -390,7 +404,17 @@ func (c *Collector) Appengine(req *http.Request) {
 // request to the URL specified in parameter.
 // Visit also calls the previously provided callbacks
 func (c *Collector) Visit(URL string) error {
+	if c.CheckHead {
+		if check := c.scrape(URL, "HEAD", 1, nil, nil, nil, true); check != nil {
+			return check
+		}
+	}
 	return c.scrape(URL, "GET", 1, nil, nil, nil, true)
+}
+
+// Head starts a collector job by creating a HEAD request.
+func (c *Collector) Head(URL string) error {
+	return c.scrape(URL, "HEAD", 1, nil, nil, nil, false)
 }
 
 // Post starts a collector job by creating a POST request.
@@ -420,6 +444,7 @@ func (c *Collector) PostMultipart(URL string, requestData map[string][]byte) err
 // Set requestData, ctx, hdr parameters to nil if you don't want to use them.
 // Valid methods:
 //   - "GET"
+//   - "HEAD"
 //   - "POST"
 //   - "PUT"
 //   - "DELETE"
@@ -459,7 +484,7 @@ func (c *Collector) UnmarshalRequest(r []byte) (*Request, error) {
 		Body:      bytes.NewReader(req.Body),
 		Ctx:       ctx,
 		ID:        atomic.AddUint32(&c.requestCount, 1),
-		Headers:   &http.Header{},
+		Headers:   &req.Headers,
 		collector: c,
 	}, nil
 }
@@ -478,7 +503,7 @@ func (c *Collector) scrape(u, method string, depth int, requestData io.Reader, c
 	if !c.isDomainAllowed(parsedURL.Host) {
 		return ErrForbiddenDomain
 	}
-	if !c.IgnoreRobotsTxt {
+	if method != "HEAD" && !c.IgnoreRobotsTxt {
 		if err = c.checkRobots(parsedURL); err != nil {
 			return err
 		}
@@ -504,10 +529,10 @@ func (c *Collector) scrape(u, method string, depth int, requestData io.Reader, c
 	u = parsedURL.String()
 	c.wg.Add(1)
 	if c.Async {
-		go c.fetch(u, method, depth, requestData, ctx, hdr, checkRevisit, req)
+		go c.fetch(u, method, depth, requestData, ctx, hdr, req)
 		return nil
 	}
-	return c.fetch(u, method, depth, requestData, ctx, hdr, checkRevisit, req)
+	return c.fetch(u, method, depth, requestData, ctx, hdr, req)
 }
 
 func setRequestBody(req *http.Request, body io.Reader) {
@@ -542,7 +567,7 @@ func setRequestBody(req *http.Request, body io.Reader) {
 	}
 }
 
-func (c *Collector) fetch(u, method string, depth int, requestData io.Reader, ctx *Context, hdr http.Header, checkRevisit bool, req *http.Request) error {
+func (c *Collector) fetch(u, method string, depth int, requestData io.Reader, ctx *Context, hdr http.Header, req *http.Request) error {
 	defer c.wg.Done()
 	if ctx == nil {
 		ctx = NewContext()
@@ -567,8 +592,16 @@ func (c *Collector) fetch(u, method string, depth int, requestData io.Reader, ct
 	if method == "POST" && req.Header.Get("Content-Type") == "" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
+
+	if req.Header.Get("Accept") == "" {
+		req.Header.Set("Accept", "*/*")
+	}
+
 	origURL := req.URL
 	response, err := c.backend.Cache(req, c.MaxBodySize, c.CacheDir)
+	if proxyURL, ok := req.Context().Value(ProxyURLKey).(string); ok {
+		request.ProxyURL = proxyURL
+	}
 	if err := c.handleOnError(response, err, request, ctx); err != nil {
 		return err
 	}
@@ -587,13 +620,19 @@ func (c *Collector) fetch(u, method string, depth int, requestData io.Reader, ct
 
 	c.handleOnResponse(response)
 
-	c.handleOnHTML(response)
+	err = c.handleOnHTML(response)
+	if err != nil {
+		c.handleOnError(response, err, request, ctx)
+	}
 
-	c.handleOnXML(response)
+	err = c.handleOnXML(response)
+	if err != nil {
+		c.handleOnError(response, err, request, ctx)
+	}
 
 	c.handleOnScraped(response)
 
-	return nil
+	return err
 }
 
 func (c *Collector) requestCheck(u, method string, depth int, checkRevisit bool) error {
@@ -604,26 +643,12 @@ func (c *Collector) requestCheck(u, method string, depth int, checkRevisit bool)
 		return ErrMaxDepth
 	}
 	if len(c.DisallowedURLFilters) > 0 {
-		matched := false
-		for _, r := range c.DisallowedURLFilters {
-			if r.Match([]byte(u)) {
-				matched = true
-				break
-			}
-		}
-		if matched {
+		if isMatchingFilter(c.DisallowedURLFilters, []byte(u)) {
 			return ErrForbiddenURL
 		}
 	}
 	if len(c.URLFilters) > 0 {
-		matched := false
-		for _, r := range c.URLFilters {
-			if r.Match([]byte(u)) {
-				matched = true
-				break
-			}
-		}
-		if !matched {
+		if !isMatchingFilter(c.URLFilters, []byte(u)) {
 			return ErrNoURLFiltersMatch
 		}
 	}
@@ -912,21 +937,23 @@ func (c *Collector) handleOnResponse(r *Response) {
 	}
 }
 
-func (c *Collector) handleOnHTML(resp *Response) {
+func (c *Collector) handleOnHTML(resp *Response) error {
 	if len(c.htmlCallbacks) == 0 || !strings.Contains(strings.ToLower(resp.Headers.Get("Content-Type")), "html") {
-		return
+		return nil
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(resp.Body))
 	if err != nil {
-		return
+		return err
 	}
 	if href, found := doc.Find("base[href]").Attr("href"); found {
 		resp.Request.baseURL, _ = url.Parse(href)
 	}
 	for _, cc := range c.htmlCallbacks {
-		doc.Find(cc.Selector).Each(func(i int, s *goquery.Selection) {
+		i := 0
+		doc.Find(cc.Selector).Each(func(_ int, s *goquery.Selection) {
 			for _, n := range s.Nodes {
-				e := NewHTMLElementFromSelectionNode(resp, s, n)
+				e := NewHTMLElementFromSelectionNode(resp, s, n, i)
+				i++
 				if c.debugger != nil {
 					c.debugger.Event(createEvent("html", resp.Request.ID, c.ID, map[string]string{
 						"selector": cc.Selector,
@@ -937,23 +964,24 @@ func (c *Collector) handleOnHTML(resp *Response) {
 			}
 		})
 	}
+	return nil
 }
 
-func (c *Collector) handleOnXML(resp *Response) {
+func (c *Collector) handleOnXML(resp *Response) error {
 	if len(c.xmlCallbacks) == 0 {
-		return
+		return nil
 	}
 	contentType := strings.ToLower(resp.Headers.Get("Content-Type"))
 	if !strings.Contains(contentType, "html") && !strings.Contains(contentType, "xml") {
-		return
+		return nil
 	}
 
 	if strings.Contains(contentType, "html") {
 		doc, err := htmlquery.Parse(bytes.NewBuffer(resp.Body))
 		if err != nil {
-			return
+			return err
 		}
-		if e := htmlquery.FindOne(doc, "//base/@href"); e != nil {
+		if e := htmlquery.FindOne(doc, "//base"); e != nil {
 			for _, a := range e.Attr {
 				if a.Key == "href" {
 					resp.Request.baseURL, _ = url.Parse(a.Val)
@@ -963,7 +991,7 @@ func (c *Collector) handleOnXML(resp *Response) {
 		}
 
 		for _, cc := range c.xmlCallbacks {
-			htmlquery.FindEach(doc, cc.Query, func(i int, n *html.Node) {
+			for _, n := range htmlquery.Find(doc, cc.Query) {
 				e := NewXMLElementFromHTMLNode(resp, n)
 				if c.debugger != nil {
 					c.debugger.Event(createEvent("xml", resp.Request.ID, c.ID, map[string]string{
@@ -972,12 +1000,12 @@ func (c *Collector) handleOnXML(resp *Response) {
 					}))
 				}
 				cc.Function(e)
-			})
+			}
 		}
 	} else if strings.Contains(contentType, "xml") {
 		doc, err := xmlquery.Parse(bytes.NewBuffer(resp.Body))
 		if err != nil {
-			return
+			return err
 		}
 
 		for _, cc := range c.xmlCallbacks {
@@ -993,13 +1021,14 @@ func (c *Collector) handleOnXML(resp *Response) {
 			})
 		}
 	}
+	return nil
 }
 
 func (c *Collector) handleOnError(response *Response, err error, request *Request, ctx *Context) error {
 	if err == nil && (c.ParseHTTPErrorResponse || response.StatusCode < 203) {
 		return nil
 	}
-	if err == nil {
+	if err == nil && response.StatusCode >= 203 {
 		err = errors.New(http.StatusText(response.StatusCode))
 	}
 	if response == nil {
@@ -1103,7 +1132,7 @@ func (c *Collector) Clone() *Collector {
 		requestCallbacks:       make([]RequestCallback, 0, 8),
 		responseCallbacks:      make([]ResponseCallback, 0, 8),
 		robotsMap:              c.robotsMap,
-		wg:                     c.wg,
+		wg:                     &sync.WaitGroup{},
 	}
 }
 
@@ -1252,4 +1281,13 @@ func (j *cookieJarSerializer) Cookies(u *url.URL) []*http.Cookie {
 		cnew = append(cnew, c)
 	}
 	return cnew
+}
+
+func isMatchingFilter(fs []*regexp.Regexp, d []byte) bool {
+	for _, r := range fs {
+		if r.Match(d) {
+			return true
+		}
+	}
+	return false
 }

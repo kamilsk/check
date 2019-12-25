@@ -3,8 +3,9 @@ package errors_test
 import (
 	"testing"
 
-	"github.com/kamilsk/check/errors"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kamilsk/check/errors"
 )
 
 func TestRecover(t *testing.T) {

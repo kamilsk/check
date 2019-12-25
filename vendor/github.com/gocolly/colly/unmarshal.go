@@ -67,6 +67,10 @@ func UnmarshalHTML(v interface{}, s *goquery.Selection) error {
 
 func unmarshalAttr(s *goquery.Selection, attrV reflect.Value, attrT reflect.StructField) error {
 	selector := attrT.Tag.Get("selector")
+	//selector is "-" specify that field should ignore.
+	if selector == "-" {
+		return nil
+	}
 	htmlAttr := attrT.Tag.Get("attr")
 	// TODO support more types
 	switch attrV.Kind() {
@@ -139,6 +143,18 @@ func unmarshalSlice(s *goquery.Selection, selector, htmlAttr string, attrV refle
 		s.Find(selector).Each(func(_ int, s *goquery.Selection) {
 			val := getDOMValue(s, htmlAttr)
 			attrV.Set(reflect.Append(attrV, reflect.Indirect(reflect.ValueOf(val))))
+		})
+	case reflect.Ptr:
+		s.Find(selector).Each(func(_ int, innerSel *goquery.Selection) {
+			someVal := reflect.New(attrV.Type().Elem().Elem())
+			UnmarshalHTML(someVal.Interface(), innerSel)
+			attrV.Set(reflect.Append(attrV, someVal))
+		})
+	case reflect.Struct:
+		s.Find(selector).Each(func(_ int, innerSel *goquery.Selection) {
+			someVal := reflect.New(attrV.Type().Elem())
+			UnmarshalHTML(someVal.Interface(), innerSel)
+			attrV.Set(reflect.Append(attrV, reflect.Indirect(someVal)))
 		})
 	default:
 		return errors.New("Invalid slice type")

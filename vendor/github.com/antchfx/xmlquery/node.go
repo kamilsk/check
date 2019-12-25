@@ -3,6 +3,7 @@ package xmlquery
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,6 +28,8 @@ const (
 	TextNode
 	// CommentNode a comment (for example, <!-- my comment --> ).
 	CommentNode
+	// AttributeNode is an attribute of element.
+	AttributeNode
 )
 
 // A Node consists of a NodeType and some Data (tag name for
@@ -64,23 +67,53 @@ func (n *Node) InnerText() string {
 	return buf.String()
 }
 
-func outputXML(buf *bytes.Buffer, n *Node) {
-	if n.Type == TextNode || n.Type == CommentNode {
-		xml.EscapeText(buf, []byte(strings.TrimSpace(n.Data)))
+func (n *Node) sanitizedData(preserveSpaces bool) string {
+	if preserveSpaces {
+		return strings.Trim(n.Data, "\n\t")
+	}
+	return strings.TrimSpace(n.Data)
+}
+
+func calculatePreserveSpaces(n *Node, pastValue bool) bool {
+	if attr := n.SelectAttr("xml:space"); attr == "preserve" {
+		return true
+	} else if attr == "default" {
+		return false
+	}
+	return pastValue
+}
+
+func outputXML(buf *bytes.Buffer, n *Node, preserveSpaces bool) {
+	preserveSpaces = calculatePreserveSpaces(n, preserveSpaces)
+	if n.Type == TextNode {
+		xml.EscapeText(buf, []byte(n.sanitizedData(preserveSpaces)))
+		return
+	}
+	if n.Type == CommentNode {
+		buf.WriteString("<!--")
+		buf.WriteString(n.Data)
+		buf.WriteString("-->")
 		return
 	}
 	if n.Type == DeclarationNode {
 		buf.WriteString("<?" + n.Data)
 	} else {
-		buf.WriteString("<" + n.Data)
+		if n.Prefix == "" {
+			buf.WriteString("<" + n.Data)
+		} else {
+			buf.WriteString("<" + n.Prefix + ":" + n.Data)
+		}
 	}
 
 	for _, attr := range n.Attr {
 		if attr.Name.Space != "" {
-			buf.WriteString(fmt.Sprintf(` %s:%s="%s"`, attr.Name.Space, attr.Name.Local, attr.Value))
+			buf.WriteString(fmt.Sprintf(` %s:%s=`, attr.Name.Space, attr.Name.Local))
 		} else {
-			buf.WriteString(fmt.Sprintf(` %s="%s"`, attr.Name.Local, attr.Value))
+			buf.WriteString(fmt.Sprintf(` %s=`, attr.Name.Local))
 		}
+		buf.WriteByte(34) // "
+		xml.EscapeText(buf, []byte(attr.Value))
+		buf.WriteByte(34)
 	}
 	if n.Type == DeclarationNode {
 		buf.WriteString("?>")
@@ -88,10 +121,14 @@ func outputXML(buf *bytes.Buffer, n *Node) {
 		buf.WriteString(">")
 	}
 	for child := n.FirstChild; child != nil; child = child.NextSibling {
-		outputXML(buf, child)
+		outputXML(buf, child, preserveSpaces)
 	}
 	if n.Type != DeclarationNode {
-		buf.WriteString(fmt.Sprintf("</%s>", n.Data))
+		if n.Prefix == "" {
+			buf.WriteString(fmt.Sprintf("</%s>", n.Data))
+		} else {
+			buf.WriteString(fmt.Sprintf("</%s:%s>", n.Prefix, n.Data))
+		}
 	}
 }
 
@@ -99,10 +136,10 @@ func outputXML(buf *bytes.Buffer, n *Node) {
 func (n *Node) OutputXML(self bool) string {
 	var buf bytes.Buffer
 	if self {
-		outputXML(&buf, n)
+		outputXML(&buf, n, false)
 	} else {
 		for n := n.FirstChild; n != nil; n = n.NextSibling {
-			outputXML(&buf, n)
+			outputXML(&buf, n, false)
 		}
 	}
 
@@ -167,6 +204,8 @@ func parse(r io.Reader) (*Node, error) {
 		space2prefix = make(map[string]string)
 		level        = 0
 	)
+	// http://www.w3.org/XML/1998/namespace is bound by definition to the prefix xml.
+	space2prefix["http://www.w3.org/XML/1998/namespace"] = "xml"
 	decoder.CharsetReader = charset.NewReaderLabel
 	prev := doc
 	for {
@@ -187,6 +226,28 @@ func parse(r io.Reader) (*Node, error) {
 				level = 1
 				prev = node
 			}
+			// https://www.w3.org/TR/xml-names/#scoping-defaulting
+			for _, att := range tok.Attr {
+				if att.Name.Local == "xmlns" {
+					space2prefix[att.Value] = ""
+				} else if att.Name.Space == "xmlns" {
+					space2prefix[att.Value] = att.Name.Local
+				}
+			}
+
+			if tok.Name.Space != "" {
+				if _, found := space2prefix[tok.Name.Space]; !found {
+					return nil, errors.New("xmlquery: invalid XML document, namespace is missing")
+				}
+			}
+
+			for i := 0; i < len(tok.Attr); i++ {
+				att := &tok.Attr[i]
+				if prefix, ok := space2prefix[att.Name.Space]; ok {
+					att.Name.Space = prefix
+				}
+			}
+
 			node := &Node{
 				Type:         ElementNode,
 				Data:         tok.Name.Local,
@@ -194,11 +255,6 @@ func parse(r io.Reader) (*Node, error) {
 				NamespaceURI: tok.Name.Space,
 				Attr:         tok.Attr,
 				level:        level,
-			}
-			for _, att := range tok.Attr {
-				if att.Name.Space == "xmlns" {
-					space2prefix[att.Value] = att.Name.Local
-				}
 			}
 			//fmt.Println(fmt.Sprintf("start > %s : %d", node.Data, level))
 			if level == prev.level {
@@ -221,6 +277,11 @@ func parse(r io.Reader) (*Node, error) {
 				addSibling(prev, node)
 			} else if level > prev.level {
 				addChild(prev, node)
+			} else if level < prev.level {
+				for i := prev.level - level; i > 1; i-- {
+					prev = prev.Parent
+				}
+				addSibling(prev.Parent, node)
 			}
 		case xml.Comment:
 			node := &Node{Type: CommentNode, Data: string(tok), level: level}
@@ -228,6 +289,11 @@ func parse(r io.Reader) (*Node, error) {
 				addSibling(prev, node)
 			} else if level > prev.level {
 				addChild(prev, node)
+			} else if level < prev.level {
+				for i := prev.level - level; i > 1; i-- {
+					prev = prev.Parent
+				}
+				addSibling(prev.Parent, node)
 			}
 		case xml.ProcInst: // Processing Instruction
 			if prev.Type != DeclarationNode {

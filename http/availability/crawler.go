@@ -9,6 +9,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
+
 	"github.com/kamilsk/check/errors"
 )
 

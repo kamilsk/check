@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kamilsk/check/http/availability"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/kamilsk/check/http/availability"
 )
 
 var (

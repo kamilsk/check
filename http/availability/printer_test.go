@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/kamilsk/check/http/availability"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kamilsk/check/http/availability"
 )
 
 func TestPrinter(t *testing.T) {
