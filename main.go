@@ -6,9 +6,11 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/spf13/cobra"
+	_ "go.octolab.org/toolkit/cli/cobra"
+
 	"github.com/kamilsk/check/cmd"
 	"github.com/kamilsk/check/errors"
-	"github.com/spf13/cobra"
 )
 
 const (
