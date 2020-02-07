@@ -13,6 +13,14 @@ import (
 	"github.com/kamilsk/check/errors"
 )
 
+const unknown = "unknown"
+
+var (
+	commit  = unknown
+	date    = unknown
+	version = "dev"
+)
+
 const (
 	success = 0
 	failed  = 1

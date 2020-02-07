@@ -9,7 +9,6 @@ cache:
 env:
   global:
     - CODECLIMATE=https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
-    - GOFLAGS=-mod=vendor
 
 go:
   - master
@@ -17,6 +16,10 @@ go:
   - 1.11.x
   - 1.12.x
   - 1.13.x
+
+matrix:
+  allow_failures:
+    - go: master
 
 before_script:
 - |

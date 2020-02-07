@@ -1,5 +1,8 @@
+---
+project_name: check
+
 archives:
-- id: binary
+- id: check
   files:
   - LICENSE
   format: tar.gz
@@ -12,15 +15,24 @@ archives:
 
 brews:
 - name: check
-  description: Tool to check something.
-  homepage: https://github.com/kamilsk/check
   commit_author:
     name:  Kamil Samigullin
     email: kamil@samigullin.info
+  description: Tool to check something.
   folder: Formula
+  homepage: https://github.com/kamilsk/check
   github:
-    name:  homebrew-tap
     owner: kamilsk
+    name:  homebrew-tap
+  install: |
+    bin.install "check"
+    output = Utils.popen_read("#{bin}/check completion bash")
+    (bash_completion/"check").write output
+    output = Utils.popen_read("#{bin}/check completion zsh")
+    (zsh_completion/"_check").write output
+    prefix.install_metafiles
+  test: |
+    system "#{bin}/check --version"
 
 builds:
 - binary: check
@@ -38,7 +50,6 @@ builds:
 checksum: { name_template: checksums.txt }
 
 release:
-  draft: false
   github:
-    name:  check
     owner: kamilsk
+    name:  check
