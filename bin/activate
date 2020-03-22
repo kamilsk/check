@@ -60,7 +60,7 @@ deactivate () {
 }
 
 deps () {
-    go mod tidy
+    go mod download
     if [[ "`go env GOFLAGS`" =~ -mod=vendor ]]; then go mod vendor; fi
 }
 
@@ -96,7 +96,7 @@ _OLD_PS1="${PS1:-}"
 
 export GO111MODULE=on
 export GOBIN="${_BINPATH}"
-export GOFLAGS=-mod=vendor
+export GOFLAGS=-mod=
 export GOPRIVATE=go.octolab.net
 export GOPROXY=direct
 export PATH="${_BINPATH}:${PATH}"

@@ -39,28 +39,67 @@ go-env:
 	@echo "PATHS:       $(strip $(PATHS))"
 	@echo "TIMEOUT:     $(TIMEOUT)"
 
-.PHONY: deps
-deps:
-	@go mod tidy
-	@if [[ "`go env GOFLAGS`" =~ -mod=vendor ]]; then go mod vendor; fi
+.PHONY: deps-check
+deps-check:
+	@go mod verify
+	@if command -v egg > /dev/null; then \
+		egg deps check license; \
+		egg deps check version; \
+	fi
 
 .PHONY: deps-clean
 deps-clean:
 	@go clean -modcache
 
+.PHONY: deps-shake
+deps-shake:
+	@go mod tidy
+
+.PHONY: module-deps
+module-deps:
+	@go mod download
+	@if [[ "`go env GOFLAGS`" =~ -mod=vendor ]]; then go mod vendor; fi
+
 .PHONY: update
-update: selector = '.Require[] | select(.Indirect != true) | .Path'
+update: selector = '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}'
 update:
 	@if command -v egg > /dev/null; then \
 		packages="`egg deps list`"; \
-		go get -mod= -u $$packages; \
-	elif command -v jq > /dev/null; then \
-		packages="`go mod edit -json | jq -r $(selector)`"; \
-		go get -mod= -u $$packages; \
 	else \
-		packages="$(shell cat go.mod | grep -v '// indirect' | grep '\t' | awk '{print $$1}')"; \
-		go get -mod= -u $$packages; \
-	fi
+		packages="`go list -f $(selector) -m all`"; \
+	fi; go get -d -mod= -u $$packages
+
+.PHONY: update-all
+update-all:
+	@go get -d -mod= -u ./...
+
+.PHONY: format
+format:
+	@goimports -local $(LOCAL) -ungroup -w $(PATHS)
+
+.PHONY: go-generate
+go-generate:
+	@go generate $(PACKAGES)
+
+.PHONY: lint
+lint:
+	@golangci-lint run ./...
+
+.PHONY: test
+test:
+	@go test -race -timeout $(TIMEOUT) $(PACKAGES)
+
+.PHONY: test-clean
+test-clean:
+	@go clean -testcache
+
+.PHONY: test-with-coverage
+test-with-coverage:
+	@go test -cover -timeout $(TIMEOUT) $(PACKAGES) | column -t | sort -r
+
+.PHONY: test-with-coverage-profile
+test-with-coverage-profile:
+	@go test -cover -covermode count -coverprofile c.out -timeout $(TIMEOUT) $(PACKAGES)
 
 BINARY  = $(BINPATH)/$(shell basename $(MAIN))
 BINPATH = $(PWD)/bin
@@ -99,40 +138,43 @@ install:
 install-clean:
 	@go clean -cache
 
-.PHONY: test
-test:
-	@go test -race -timeout $(TIMEOUT) $(PACKAGES)
+.PHONY: dist-check
+dist-check:
+	@goreleaser --snapshot --skip-publish --rm-dist
 
-.PHONY: test-clean
-test-clean:
-	@go clean -testcache
-
-.PHONY: test-with-coverage
-test-with-coverage:
-	@go test -cover -timeout $(TIMEOUT) $(PACKAGES) | column -t | sort -r
-
-.PHONY: test-with-coverage-profile
-test-with-coverage-profile:
-	@go test -cover -covermode count -coverprofile c.out -timeout $(TIMEOUT) $(PACKAGES)
-
-.PHONY: dist
-dist:
+.PHONY: dist-dump
+dist-dump:
 	@godownloader .goreleaser.yml > bin/install
 
-.PHONY: format
-format:
-	@goimports -local $(LOCAL) -ungroup -w $(PATHS)
+TOOLFLAGS = -mod=
 
-.PHONY: generate
-generate:
-	@go generate $(PACKAGES)
+.PHONY: tools-env
+tools-env:
+	@echo "GOBIN:       `go env GOBIN`"
+	@echo "TOOLFLAGS:   $(TOOLFLAGS)"
+
+.PHONY: toolset
+toolset:
+	@( \
+		GOFLAGS=$(TOOLFLAGS); \
+		cd tools; \
+		go mod download; \
+		if [[ "`go env GOFLAGS`" =~ -mod=vendor ]]; then go mod vendor; fi; \
+		go generate tools.go; \
+	)
 
 
 .PHONY: clean
 clean: build-clean deps-clean install-clean test-clean
 
+.PHONY: deps
+deps: module-deps toolset
+
 .PHONY: env
-env: go-env build-env
+env: go-env build-env tools-env
+
+.PHONY: generate
+generate: go-generate format
 
 .PHONY: refresh
-refresh: update deps generate format test build
+refresh: deps-shake update deps generate format test build

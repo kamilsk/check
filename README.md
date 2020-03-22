@@ -67,7 +67,7 @@ $ go get -u github.com/kamilsk/check
 $ egg tools add github.com/kamilsk/check
 ```
 
-> [egg][egg.page]<sup id="anchor-egg">[1](#egg)</sup> is an `extended go get`.
+> [egg][]<sup id="anchor-egg">[1](#egg)</sup> is an `extended go get`.
 
 ### Bash and Zsh completions
 
@@ -82,14 +82,11 @@ $ check completion zsh  > /path/to/zsh-completions/_check.zsh
 
 made with ❤️ for everyone
 
-[build.icon]:       https://travis-ci.org/kamilsk/check.svg?branch=master
 [build.page]:       https://travis-ci.org/kamilsk/check
-
+[build.icon]:       https://travis-ci.org/kamilsk/check.svg?branch=master
 [design.page]:      https://www.notion.so/33715348cc114ea79dd350a25d16e0b0?r=0b753cbf767346f5a6fd51194829a2f3
-
 [promo.page]:       https://github.com/kamilsk/check
-
 [template.page]:    https://github.com/octomation/go-tool
 [template.icon]:    https://img.shields.io/badge/template-go--tool-blue
 
-[egg.page]:         https://github.com/kamilsk/egg
+[egg]:              https://github.com/kamilsk/egg
