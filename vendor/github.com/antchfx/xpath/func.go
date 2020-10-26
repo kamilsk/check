@@ -25,7 +25,7 @@ func predicate(q query) func(NodeNavigator) bool {
 func positionFunc(q query, t iterator) interface{} {
 	var (
 		count = 1
-		node  = t.Current()
+		node  = t.Current().Copy()
 	)
 	test := predicate(q)
 	for node.MoveToPrevious() {
@@ -40,7 +40,7 @@ func positionFunc(q query, t iterator) interface{} {
 func lastFunc(q query, t iterator) interface{} {
 	var (
 		count = 0
-		node  = t.Current()
+		node  = t.Current().Copy()
 	)
 	node.MoveToFirst()
 	test := predicate(q)
@@ -530,4 +530,24 @@ func functionArgs(q query) query {
 		return q
 	}
 	return q.Clone()
+}
+
+func reverseFunc(q query, t iterator) func() NodeNavigator {
+	var list []NodeNavigator
+	for {
+		node := q.Select(t)
+		if node == nil {
+			break
+		}
+		list = append(list, node.Copy())
+	}
+	i := len(list)
+	return func() NodeNavigator {
+		if i <= 0 {
+			return nil
+		}
+		i--
+		node := list[i]
+		return node
+	}
 }
