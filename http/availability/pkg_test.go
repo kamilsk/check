@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/stretchr/testify/mock"
+	"go.octolab.org/unsafe"
 
 	"github.com/kamilsk/check/http/availability"
 )
@@ -137,7 +138,7 @@ var echoLinks = func(site1, site2 string) func(http.ResponseWriter, *http.Reques
 				{Href: "tel:+01234567", Text: "+01234567"},
 				{Href: ":bad", Text: "something bad"},
 			}
-			tpl.Execute(rw, links)
+			unsafe.Ignore(tpl.Execute(rw, links))
 			return nil
 		}
 		return fmt.Errorf("can't handle request %q", req.URL.Path)
@@ -152,7 +153,9 @@ func site() (server *httptest.Server, closer func()) {
 		main                   = httptest.NewServer(chain3)
 	)
 	chain1.handlers = append(chain1.handlers, echoCode, echoLinks(site2.URL, main.URL))
+	//nolint:gocritic
 	chain2.handlers = append(chain1.handlers, echoCode, echoLinks(site1.URL, main.URL))
+	//nolint:gocritic
 	chain3.handlers = append(chain1.handlers, echoCode, echoLinks(site1.URL, site2.URL))
 	return main, func() {
 		site1.Close()

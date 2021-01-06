@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.octolab.org/unsafe"
 )
 
 func TestURLs(t *testing.T) {
@@ -23,8 +24,8 @@ func TestURLs(t *testing.T) {
 	{
 		buf.Reset()
 		verbose := cmd.Flag("verbose")
-		verbose.Value.Set("true")
+		unsafe.Ignore(verbose.Value.Set("true"))
 		assert.NoError(t, cmd.RunE(cmd, []string{site.URL + "/"}))
-		verbose.Value.Set(verbose.DefValue)
+		unsafe.Ignore(verbose.Value.Set(verbose.DefValue))
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+
+	"go.octolab.org/unsafe"
 )
 
 var (
@@ -23,10 +25,10 @@ var (
 
 func site() (server *httptest.Server, closer func()) {
 	main := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		tpl.Execute(rw, struct {
+		unsafe.Ignore(tpl.Execute(rw, struct {
 			Href string
 			Text string
-		}{"/", "Home"})
+		}{"/", "Home"}))
 	}))
 	return main, main.Close
 }

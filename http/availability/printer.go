@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
+	"go.octolab.org/unsafe"
 
 	"github.com/kamilsk/check/errors"
 )
@@ -70,7 +71,7 @@ func DecodeOutput(enabled bool) func(*Printer) {
 func HideError(disabled bool) func(*Printer) {
 	return func(p *Printer) {
 		if disabled {
-			p.tpl.New("error").Parse("{{ with .Error }}{{/* ignore */}}{{ end }}")
+			unsafe.DoSilent(p.tpl.New("error").Parse("{{ with .Error }}{{/* ignore */}}{{ end }}"))
 		}
 	}
 }
@@ -79,7 +80,7 @@ func HideError(disabled bool) func(*Printer) {
 func HideRedirect(disabled bool) func(*Printer) {
 	return func(p *Printer) {
 		if disabled {
-			p.tpl.New("redirect").Parse("{{ with .Redirect }}{{/* ignore */}}{{ end }}")
+			unsafe.DoSilent(p.tpl.New("redirect").Parse("{{ with .Redirect }}{{/* ignore */}}{{ end }}"))
 		}
 	}
 }
@@ -132,14 +133,15 @@ func (p *Printer) Print() error {
 			last := len(page.Links) - 1
 			{
 				buf.Reset()
-				p.tpl.Execute(buf, page)
+				unsafe.Ignore(p.tpl.Execute(buf, page))
 			}
 			p.typewriter(page.Link).Fprintf(w, "%s\n", p.decoder(buf.String()))
 			sort.Sort(linksByStatusCode(page.Links))
 			for i, link := range page.Links {
+				link := link
 				{
 					buf.Reset()
-					p.tpl.Execute(buf, link)
+					unsafe.Ignore(p.tpl.Execute(buf, link))
 				}
 				if i == last {
 					p.typewriter(&link).Fprintf(w, "    └───%s\n", p.decoder(buf.String()))

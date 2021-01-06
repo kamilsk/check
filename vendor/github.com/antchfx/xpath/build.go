@@ -77,7 +77,18 @@ func (b *builder) processAxisNode(root *axisNode) (query, error) {
 				} else {
 					qyGrandInput = &contextQuery{}
 				}
-				qyOutput = &descendantQuery{Input: qyGrandInput, Predicate: predicate, Self: true}
+				// fix #20: https://github.com/antchfx/htmlquery/issues/20
+				filter := func(n NodeNavigator) bool {
+					v := predicate(n)
+					switch root.Prop {
+					case "text":
+						v = v && n.NodeType() == TextNode
+					case "comment":
+						v = v && n.NodeType() == CommentNode
+					}
+					return v
+				}
+				qyOutput = &descendantQuery{Input: qyGrandInput, Predicate: filter, Self: true}
 				return qyOutput, nil
 			}
 		}
@@ -398,6 +409,15 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			args = append(args, q)
 		}
 		qyOutput = &functionQuery{Input: b.firstInput, Func: concatFunc(args...)}
+	case "reverse":
+		if len(root.Args) == 0 {
+			return nil, fmt.Errorf("xpath: reverse(node-sets) function must with have parameters node-sets")
+		}
+		argQuery, err := b.processNode(root.Args[0])
+		if err != nil {
+			return nil, err
+		}
+		qyOutput = &transformFunctionQuery{Input: argQuery, Func: reverseFunc}
 	default:
 		return nil, fmt.Errorf("not yet support this function %s()", root.FuncName)
 	}

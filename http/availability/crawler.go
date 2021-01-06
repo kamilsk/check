@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gocolly/colly"
-	"github.com/gocolly/colly/debug"
+	"github.com/gocolly/colly/v2"
+	"github.com/gocolly/colly/v2/debug"
+	"go.octolab.org/unsafe"
 
 	"github.com/kamilsk/check/errors"
 )
@@ -49,7 +50,7 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 		if err != nil {
 			return errors.WithMessage(err, fmt.Sprintf("parse entry point URL %q", entry))
 		}
-		options := make([]func(*colly.Collector), 0, 9)
+		options := make([]colly.CollectorOption, 0, 9)
 		if config.UserAgent != "" {
 			options = append(options, colly.UserAgent(config.UserAgent))
 		}
@@ -72,9 +73,9 @@ func CrawlerColly(config CrawlerConfig) Crawler {
 // NoRedirect disables redirects for `github.com/gocolly/colly.Collector`.
 func NoRedirect() func(*colly.Collector) {
 	return func(c *colly.Collector) {
-		c.RedirectHandler = func(*http.Request, []*http.Request) error {
+		c.SetRedirectHandler(func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
-		}
+		})
 	}
 }
 
@@ -153,7 +154,7 @@ func OnHTML(base *url.URL, bus EventBus) func(*colly.Collector) {
 					Page: el.Request.URL.String(),
 					Href: href,
 				}
-				el.Request.Visit(href)
+				unsafe.Ignore(el.Request.Visit(href))
 			}
 		})
 	}
